@@ -12,8 +12,10 @@ import java.util.concurrent.TimeUnit;
 
 import javax.lang.model.element.Modifier;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
 import com.squareup.javapoet.CodeBlock;
@@ -25,6 +27,9 @@ import com.squareup.javapoet.TypeSpec;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.remote.MobileCapabilityType;
+import models.Feature;
+import models.Scenario;
+import models.Step;
 
 public class AppiumTestGenerator {
 
@@ -40,10 +45,30 @@ public class AppiumTestGenerator {
 
 	private Map<String, MethodSpec> defaultMethodSpec = new HashMap<>();
 
+	private List<Feature> features = new ArrayList<>();
+
+	private List<JavaFile> javaFiles = new ArrayList<>();
+
 	public void generateDefault() {
 
 		defaultMethodSpec.put("setUp", generateSetUpMethod());
 		defaultMethodSpec.put("tearDown", generateTearDownMethod());
+	}
+
+	public MethodSpec generateScenariosMethod(Scenario scenario) {
+
+		Builder methodBuilder = MethodSpec.methodBuilder(scenario.getName()).addModifiers(Modifier.PUBLIC)
+				.returns(void.class).addAnnotation(Test.class);
+
+		methodBuilder.addComment("Cyndi ggyy");
+
+		for (Step step : scenario.getSteps()) {
+
+			methodBuilder.addComment("$L $L $L $L ", step.getGherkinType(), step.getDesc(), step.getCommand().getType(),
+					step.getCommand().getParams());
+		}
+
+		return methodBuilder.build();
 	}
 
 	public MethodSpec generateSetUpMethod() {
@@ -68,19 +93,41 @@ public class AppiumTestGenerator {
 	}
 
 	public void generate() throws IOException {
+		generateDefault();
+		for (Feature feature : features) {
 
-		List<MethodSpec> methods = new ArrayList<>();
+			List<MethodSpec> methods = new ArrayList<>();
+			methods.add(defaultMethodSpec.get("setUp"));
+			methods.add(defaultMethodSpec.get("tearDown"));
 
-		methods.add(generateSetUpMethod());
+			String className = StringUtils.endsWith(feature.getName(), "Test") ? feature.getName()
+					: feature.getName() + "Test";
 
-		methods.add(generateTearDownMethod());
+			TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className).addModifiers(Modifier.PUBLIC);
 
-		TypeSpec helloWorld = TypeSpec.classBuilder(className).addModifiers(Modifier.PUBLIC).addMethods(methods)
-				.addField(IOSDriver.class, driverName, Modifier.PRIVATE).build();
+			classBuilder.addField(IOSDriver.class, driverName, Modifier.PRIVATE);
 
-		JavaFile javaFile = JavaFile.builder(packageName, helloWorld).build();
+			classBuilder.addMethods(methods);
 
-		javaFile.writeTo(new File(outputDir));
+			for (Scenario s : feature.getScenarios()) {
+				classBuilder.addMethod(generateScenariosMethod(s));
+			}
+
+			TypeSpec typeSpec = classBuilder.build();
+
+			javaFiles.add(JavaFile.builder(packageName + "." + feature.getGroup(), typeSpec).build());
+		}
+
+	}
+
+	public void writeTo() {
+		javaFiles.forEach((javaFile) -> {
+			try {
+				javaFile.writeTo(new File(outputDir));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		});
 	}
 
 	private CodeBlock generateDriver(String driverName, String variable, Map<String, Object> properties) {
@@ -137,4 +184,7 @@ public class AppiumTestGenerator {
 		}
 	}
 
+	public void addFeatures(List<Feature> features) {
+		this.features.addAll(features);
+	}
 }

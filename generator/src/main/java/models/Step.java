@@ -1,17 +1,40 @@
 package models;
 
-import java.util.List;
-
 public class Step {
 
-	List<Command> commands;
+	private String desc;
 
-	public List<Command> getCommands() {
-		return commands;
+	private String gherkinType;
+
+	private Command command;
+
+	public String getDesc() {
+		return desc;
 	}
 
-	public void setCommands(List<Command> commands) {
-		this.commands = commands;
+	public void setDesc(String desc) {
+		this.desc = desc;
+	}
+
+	public String getGherkinType() {
+		return gherkinType;
+	}
+
+	public void setGherkinType(String gherkinType) {
+		this.gherkinType = gherkinType;
+	}
+
+	public Command getCommand() {
+		return command;
+	}
+
+	public void setCommand(Command command) {
+		this.command = command;
+	}
+
+	@Override
+	public String toString() {
+		return "Step [desc=" + desc + ", gherkinType=" + gherkinType + ", command=" + command + "]";
 	}
 
 }

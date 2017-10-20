@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -25,6 +26,7 @@ import generator.AppiumTestGenerator;
 import generator.ExcelReader;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.ios.IOSDriver;
+import models.Feature;
 
 public class AppiumTestGeneratorTest {
 
@@ -36,18 +38,22 @@ public class AppiumTestGeneratorTest {
 		ExcelReader reader = new ExcelReader(path);
 
 		reader.test();
-		
+
 		Map<String, Object> driverProperties = reader.getProperties();
 
 		Map<String, Object> desiredCapabilities = reader.getDesiredCapabilities();
 
-		
+		List<Feature> features = reader.getFeatures();
+
 		AppiumTestGenerator generator = new AppiumTestGenerator();
 
 		generator.addDesiredCapabilities(desiredCapabilities);
 		generator.addDriverProperties(driverProperties);
+		generator.addFeatures(features);
 
 		generator.generate();
 
+		
+		generator.writeTo();
 	}
 }

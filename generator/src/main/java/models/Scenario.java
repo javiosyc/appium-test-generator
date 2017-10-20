@@ -33,4 +33,9 @@ public class Scenario {
 		this.steps = steps;
 	}
 
+	@Override
+	public String toString() {
+		return "Scenario [name=" + name + ", desc=" + desc + ", steps=" + steps + "]";
+	}
+
 }

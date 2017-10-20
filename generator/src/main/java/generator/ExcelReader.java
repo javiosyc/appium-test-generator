@@ -33,7 +33,10 @@ import generator.utils.DesiredCapabilityUtils;
 import io.appium.java_client.remote.IOSMobileCapabilityType;
 import io.appium.java_client.remote.MobileCapabilityType;
 import models.AccountInfo;
+import models.Command;
 import models.Feature;
+import models.Scenario;
+import models.Step;
 
 public class ExcelReader {
 
@@ -43,6 +46,10 @@ public class ExcelReader {
 
 	private List<Feature> features = new ArrayList<>();
 
+	public List<Feature> getFeatures() {
+		return features;
+	}
+
 	private List<AccountInfo> accounts = new ArrayList<>();
 
 	private final String excelFile;
@@ -50,6 +57,8 @@ public class ExcelReader {
 	private final XSSFWorkbook wb;
 
 	private final int count;
+
+	private List<String> gherkins = Arrays.asList("Given", "And", "When", "Then");
 
 	public XSSFWorkbook getWb() {
 		return wb;
@@ -61,58 +70,13 @@ public class ExcelReader {
 		count = wb.getNumberOfSheets();
 	}
 
-	public void test() {
+	public void test() throws IOException {
 
 		IntStream.range(0, count).forEach((index) -> {
-
 			parseSheet(wb.getSheetAt(index));
-
-			// System.out.println(wb.getSheetAt(index).getSheetName());
 		});
 
-		System.out.println(count);
-		//
-		// XSSFSheet sheet = wb.getSheet(configuationName);
-		//
-		// XSSFRow row;
-		// XSSFCell cell;
-		//
-		// Iterator<Row> rows = sheet.rowIterator();
-		//
-		// while (rows.hasNext()) {
-		// row = (XSSFRow) rows.next();
-		// Iterator<Cell> cells = row.cellIterator();
-		//
-		// int i = 0;
-		//
-		// while (cells.hasNext()) {
-		// cell = (XSSFCell) cells.next();
-		//
-		// switch (cell.getCellTypeEnum()) {
-		// case STRING:
-		//
-		// cell.getStringCellValue();
-		// break;
-		//
-		// default:
-		//
-		// break;
-		// }
-		//
-		// if (i == 2) {
-		// break;
-		// }
-		//
-		// if (cell.getCellType() == XSSFCell.CELL_TYPE_STRING) {
-		// System.out.print(cell.getStringCellValue() + " ");
-		// } else if (cell.getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
-		// System.out.print(cell.getNumericCellValue() + " ");
-		// } else {
-		// // U Can Handel Boolean, Formula, Errors
-		// }
-		// }
-		// System.out.println();
-		// }
+		wb.close();
 	}
 
 	public void showData() {
@@ -126,7 +90,7 @@ public class ExcelReader {
 		for (Map.Entry<String, Object> entry : properties.entrySet()) {
 			System.out.println(entry.getKey() + ":" + entry.getValue());
 		}
-		
+
 		features.stream().forEach(System.out::println);
 	}
 
@@ -138,8 +102,6 @@ public class ExcelReader {
 			return;
 
 		String type = StringUtils.trim(titleRow.getCell(0).getStringCellValue());
-
-		System.out.println("type" + type);
 
 		if ("settings".equals(type)) {
 
@@ -232,7 +194,9 @@ public class ExcelReader {
 			}
 
 		} else if ("script".equals(type)) {
-			System.out.println(sheet.getSheetName());
+			if (sheet.getPhysicalNumberOfRows() < 3) {
+				return;
+			}
 
 			Row typeRow = sheet.getRow(1);
 
@@ -244,9 +208,88 @@ public class ExcelReader {
 			feature.setName(featureName);
 			feature.setDesc(featureDesc);
 			feature.setGroup(packageName);
-			
+			feature.setScenarios(new ArrayList<>());
+
 			features.add(feature);
+
+			Iterator<Row> rowIterator = sheet.iterator();
+			Iterators.advance(rowIterator, 2);
+
+			Scenario currentScenario = null;
+
+			while (rowIterator.hasNext()) {
+				Row row = rowIterator.next();
+
+				String cellString = getStringCellValue(row, 0);
+
+				if (StringUtils.isBlank(cellString)) {
+					continue;
+				}
+
+				if (gherkins.contains(cellString)) {
+					System.out.println("step");
+
+					if (currentScenario != null) {
+						String stepType = row.getCell(0).getStringCellValue();
+						String desc = row.getCell(1).getStringCellValue();
+						String commandType = row.getCell(2).getStringCellValue();
+
+						Step step = new Step();
+						step.setDesc(desc);
+						step.setGherkinType(stepType);
+
+						Command command = new Command();
+						command.setType(commandType);
+
+						step.setCommand(command);
+
+						for (int cn = 3; cn < row.getLastCellNum(); cn++) {
+							Cell cell = row.getCell(cn);
+							CellType cellType = cell.getCellTypeEnum();
+							switch (cellType) {
+							case STRING:
+								command.addParam(row.getCell(cn).getStringCellValue());
+								break;
+							case NUMERIC:
+								command.addParam(row.getCell(cn).getNumericCellValue());
+								break;
+							default:
+								break;
+							}
+						}
+						System.out.println(step);
+
+						currentScenario.getSteps().add(step);
+					}
+
+				} else {
+
+					System.out.println("Scenario");
+
+					String desc = row.getCell(0).getStringCellValue();
+					String name = row.getCell(1).getStringCellValue();
+
+					currentScenario = new Scenario();
+
+					currentScenario.setName(name);
+					currentScenario.setDesc(desc);
+					currentScenario.setSteps(new ArrayList<Step>());
+
+					feature.getScenarios().add(currentScenario);
+
+				}
+
+			}
 		}
+	}
+
+	private String getStringCellValue(Row row, int i) {
+		Cell cell = row.getCell(i);
+		if (cell == null) {
+			return "";
+		}
+
+		return cell.getStringCellValue();
 	}
 
 	private boolean implicitlyWaitProperty(Row row) {
