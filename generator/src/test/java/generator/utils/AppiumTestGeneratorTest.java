@@ -41,7 +41,7 @@ public class AppiumTestGeneratorTest {
 
 		AppiumTestGenerator generator = new AppiumTestGenerator(reader);
 
-		generator.setOutputDir("/Users/javiosyc/git/sample-code/sample-code/examples/java/junit/src/test/java");
+		generator.setOutputDir("/Users/esunbank/test-script/appium-script/test/src/test/java");
 
 		generator.generate();
 
