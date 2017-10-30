@@ -207,7 +207,7 @@ public class ExcelReader {
 			Feature feature = new Feature();
 			feature.setName(featureName);
 			feature.setDesc(featureDesc);
-			feature.setGroup(packageName);
+			feature.setPackageName(packageName);
 			feature.setScenarios(new ArrayList<>());
 
 			features.add(feature);
@@ -331,7 +331,7 @@ public class ExcelReader {
 	}
 
 	private boolean checkAccountInfo(Row row) {
-		return !IntStream.range(0, 5).anyMatch((index) -> {
+		return !IntStream.range(0, 4).anyMatch((index) -> {
 			Cell cell = row.getCell(index);
 			String cellValue;
 			if (cell == null) {

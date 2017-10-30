@@ -6,7 +6,7 @@ public class Feature {
 	private String name;
 	private String desc;
 
-	private String group;
+	private String packageName;
 
 	private List<Scenario> scenarios;
 
@@ -26,14 +26,6 @@ public class Feature {
 		this.desc = desc;
 	}
 
-	public String getGroup() {
-		return group;
-	}
-
-	public void setGroup(String group) {
-		this.group = group;
-	}
-
 	public List<Scenario> getScenarios() {
 		return scenarios;
 	}
@@ -42,9 +34,18 @@ public class Feature {
 		this.scenarios = scenarios;
 	}
 
+	public String getPackageName() {
+		return packageName;
+	}
+
+	public void setPackageName(String packageName) {
+		this.packageName = packageName;
+	}
+
 	@Override
 	public String toString() {
-		return "Feature [name=" + name + ", desc=" + desc + ", group=" + group + ", scenarios=" + scenarios + "]";
+		return "Feature [name=" + name + ", desc=" + desc + ", packageName=" + packageName + ", scenarios=" + scenarios
+				+ "]";
 	}
 
 }

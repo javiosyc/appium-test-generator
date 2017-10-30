@@ -39,21 +39,12 @@ public class AppiumTestGeneratorTest {
 
 		reader.test();
 
-		Map<String, Object> driverProperties = reader.getProperties();
+		AppiumTestGenerator generator = new AppiumTestGenerator(reader);
 
-		Map<String, Object> desiredCapabilities = reader.getDesiredCapabilities();
-
-		List<Feature> features = reader.getFeatures();
-
-		AppiumTestGenerator generator = new AppiumTestGenerator();
-
-		generator.addDesiredCapabilities(desiredCapabilities);
-		generator.addDriverProperties(driverProperties);
-		generator.addFeatures(features);
+		generator.setOutputDir("/Users/javiosyc/git/sample-code/sample-code/examples/java/junit/src/test/java");
 
 		generator.generate();
 
-		
 		generator.writeTo();
 	}
 }
