@@ -231,7 +231,7 @@ public class AppiumTestGenerator {
 
 		CodeBlock.Builder builder = CodeBlock.builder();
 
-		String url = (String) properties.getOrDefault("appiumUrl", "http: 127.0.0.1:4723/wd/hub");
+		String url = (String) properties.getOrDefault("appiumUrl", "http://127.0.0.1:4723/wd/hub");
 		int implicitlyWaitSec = (int) properties.get("implicitlyWait");
 
 		builder.add("$L= new $T<$T>(new $T(\"$L\"), $L);\n", driverName, IOSDriver.class, MobileElement.class,
