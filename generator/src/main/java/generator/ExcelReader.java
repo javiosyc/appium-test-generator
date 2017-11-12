@@ -3,40 +3,24 @@ package generator;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFCellStyle;
-import org.apache.poi.xssf.usermodel.XSSFFont;
-import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.openqa.selenium.remote.DesiredCapabilities;
 
-import com.google.common.collect.Iterators;
-import com.google.common.primitives.Ints;
-
-import generator.utils.DesiredCapabilityUtils;
-import io.appium.java_client.remote.IOSMobileCapabilityType;
-import io.appium.java_client.remote.MobileCapabilityType;
+import generator.handlers.HandlerExecution;
+import generator.mappers.AccountMapper;
+import generator.mappers.CommonStepMapper;
+import generator.mappers.ExcelSheetMapper;
+import generator.mappers.ScriptMapper;
+import generator.mappers.SettingMapper;
 import models.AccountInfo;
-import models.Command;
+import models.CommonUtilClass;
 import models.Feature;
-import models.Scenario;
-import models.Step;
 
 public class ExcelReader {
 
@@ -46,9 +30,13 @@ public class ExcelReader {
 
 	private List<Feature> features = new ArrayList<>();
 
+	private List<ExcelSheetMapper<?>> mappers = new ArrayList<>();
+
 	public List<Feature> getFeatures() {
 		return features;
 	}
+
+	private Map<String, Object> data = new HashMap<>();
 
 	private List<AccountInfo> accounts = new ArrayList<>();
 
@@ -58,8 +46,6 @@ public class ExcelReader {
 
 	private final int count;
 
-	private List<String> gherkins = Arrays.asList("Given", "And", "When", "Then");
-
 	public XSSFWorkbook getWb() {
 		return wb;
 	}
@@ -68,10 +54,14 @@ public class ExcelReader {
 		this.excelFile = excelFile;
 		wb = new XSSFWorkbook(new FileInputStream(excelFile));
 		count = wb.getNumberOfSheets();
+
+		mappers.add(new ScriptMapper());
+		mappers.add(new SettingMapper());
+		mappers.add(new AccountMapper());
+		mappers.add(new CommonStepMapper());
 	}
 
-	public void test() throws IOException {
-
+	public void read() throws IOException {
 		IntStream.range(0, count).forEach((index) -> {
 			parseSheet(wb.getSheetAt(index));
 		});
@@ -80,266 +70,105 @@ public class ExcelReader {
 	}
 
 	public void showData() {
-		accounts.stream().forEach(System.out::println);
 
-		for (Map.Entry<String, Object> entry : desiredCapabilities.entrySet()) {
-			System.out.println(entry.getKey() + ":" + entry.getValue());
+		for (Map.Entry<String, Object> entry : data.entrySet()) {
+			Object values = entry.getValue();
 
+			if (values instanceof ArrayList) {
+
+				List list = (ArrayList) values;
+				if (!list.isEmpty()) {
+					if (list.get(0) instanceof Feature) {
+						for (Object value : list) {
+							Feature f = (Feature) value;
+							System.out.println(f.getScenarios().size() + "---");
+
+							f.getScenarios().forEach((s) -> {
+								System.out.println(s.getName() + "-" + s.getDesc());
+
+								s.getSteps().forEach(System.out::println);
+							});
+						}
+					}
+					if (list.get(0) instanceof CommonUtilClass) {
+						for (Object value : list) {
+							CommonUtilClass utilClass = (CommonUtilClass) value;
+							System.out.println(
+									utilClass.getName() + "-" + utilClass.getDesc() + "-" + utilClass.getPackageName());
+
+							utilClass.getMethods().forEach(utilMethod -> {
+								System.out.println("\t" + utilMethod.getName() + "-" + utilMethod.getDesc()
+										+ "-noReset:" + utilMethod.isNoReset());
+
+								utilMethod.getSteps().forEach((step) -> {
+									System.out.print("\t\t" + step.getDesc() + step.getCommand().getType());
+
+									step.getCommand().getParams().forEach((param) -> {
+										System.out.print(" " + param);
+									});
+									System.out.println();
+								});
+							});
+						}
+					}
+
+					if (list.get(0) instanceof AccountInfo) {
+
+						List<AccountInfo> accounts = (List<AccountInfo>) list;
+
+						accounts.forEach((acc) -> {
+							System.out.println(acc.getType() + "-" + acc.getUserName() + ":" + acc.getPid() + ":"
+									+ acc.getPassword() + acc.getComment());
+						});
+
+					}
+				}
+			}
+
+			if (values instanceof HashMap) {
+
+				Map<String, Map<String, Object>> map = (Map<String, Map<String, Object>>) values;
+
+				if (!map.isEmpty()) {
+
+					Map<String, Object> desiredCapabilities = map.get("desiredCapabilities");
+
+					Map<String, Object> driverProperties = map.get("driverProperties");
+
+					System.out.println("desiredCapabilities");
+					for (Map.Entry<String, Object> mapEntry : desiredCapabilities.entrySet()) {
+						System.out.println(mapEntry.getKey() + ":" + mapEntry.getValue());
+					}
+
+					System.out.println("driverProperties");
+					for (Map.Entry<String, Object> mapEntry : driverProperties.entrySet()) {
+						System.out.println(mapEntry.getKey() + ":" + mapEntry.getValue());
+					}
+				}
+			}
 		}
-
-		for (Map.Entry<String, Object> entry : properties.entrySet()) {
-			System.out.println(entry.getKey() + ":" + entry.getValue());
-		}
-
-		features.stream().forEach(System.out::println);
 	}
 
 	private void parseSheet(XSSFSheet sheet) {
 
-		Row titleRow = sheet.getRow(1);
+		HandlerExecution<?> execution = getHandler(sheet);
 
-		if (titleRow == null || titleRow.getCell(0) == null)
+		if (execution == null) {
 			return;
-
-		String type = StringUtils.trim(titleRow.getCell(0).getStringCellValue());
-
-		if ("settings".equals(type)) {
-
-			if (sheet.getPhysicalNumberOfRows() < 2) {
-				return;
-			}
-
-			Map<String, String> mapper = getCapabilityNameMapper();
-			Iterator<Row> rowIterator = sheet.iterator();
-
-			Iterators.advance(rowIterator, 1);
-
-			while (rowIterator.hasNext()) {
-				Row row = rowIterator.next();
-
-				if (StringUtils.isBlank(row.getCell(0).getStringCellValue())) {
-					continue;
-				}
-
-				if (isDesiredCapability(row)) {
-					String column = row.getCell(0).getStringCellValue();
-
-					String key = mapper.getOrDefault(column, column);
-
-					if (row.getCell(1) == null)
-						continue;
-
-					CellType cell = row.getCell(1).getCellTypeEnum();
-
-					Object value = null;
-
-					switch (cell) {
-					case BOOLEAN:
-						value = row.getCell(1).getBooleanCellValue();
-						break;
-
-					case STRING:
-						String cellValue = row.getCell(1).getStringCellValue();
-						if (StringUtils.isNotBlank(cellValue))
-							value = cellValue;
-						break;
-					default:
-						break;
-					}
-
-					if (value != null)
-						desiredCapabilities.put(key, value);
-				}
-
-				if (implicitlyWaitProperty(row)) {
-
-					if (row.getCell(1) != null) {
-
-						Double cellValue = row.getCell(1).getNumericCellValue();
-
-						Integer waitSec = cellValue.intValue();
-
-						properties.put("implicitlyWait", waitSec);
-					}
-				}
-			}
-
-		} else if ("data".equals(type)) {
-
-			if (sheet.getPhysicalNumberOfRows() < 3) {
-				return;
-			}
-
-			Iterator<Row> rowIterator = sheet.iterator();
-			Iterators.advance(rowIterator, 2);
-
-			while (rowIterator.hasNext()) {
-
-				Row row = rowIterator.next();
-
-				if (!checkAccountInfo(row))
-					continue;
-
-				if (isTitleColumn(row))
-					continue;
-
-				AccountInfo accountInfo = new AccountInfo();
-				accountInfo.setType(row.getCell(0).getStringCellValue());
-				accountInfo.setPid(row.getCell(1).getStringCellValue());
-				accountInfo.setUserName(row.getCell(2).getStringCellValue());
-				accountInfo.setPassword(row.getCell(3).getStringCellValue());
-				accountInfo.setComment(row.getCell(4).getStringCellValue());
-
-				accounts.add(accountInfo);
-			}
-
-		} else if ("script".equals(type)) {
-			if (sheet.getPhysicalNumberOfRows() < 3) {
-				return;
-			}
-
-			Row typeRow = sheet.getRow(1);
-
-			String featureDesc = typeRow.getCell(1).getStringCellValue();
-			String featureName = typeRow.getCell(2).getStringCellValue();
-			String packageName = typeRow.getCell(3).getStringCellValue();
-
-			Feature feature = new Feature();
-			feature.setName(featureName);
-			feature.setDesc(featureDesc);
-			feature.setPackageName(packageName);
-			feature.setScenarios(new ArrayList<>());
-
-			features.add(feature);
-
-			Iterator<Row> rowIterator = sheet.iterator();
-			Iterators.advance(rowIterator, 2);
-
-			Scenario currentScenario = null;
-
-			while (rowIterator.hasNext()) {
-				Row row = rowIterator.next();
-
-				String cellString = getStringCellValue(row, 0);
-
-				if (StringUtils.isBlank(cellString)) {
-					continue;
-				}
-
-				if (gherkins.contains(cellString)) {
-					System.out.println("step");
-
-					if (currentScenario != null) {
-						String stepType = row.getCell(0).getStringCellValue();
-						String desc = row.getCell(1).getStringCellValue();
-						String commandType = row.getCell(2).getStringCellValue();
-
-						Step step = new Step();
-						step.setDesc(desc);
-						step.setGherkinType(stepType);
-
-						Command command = new Command();
-						command.setType(commandType);
-
-						step.setCommand(command);
-
-						for (int cn = 3; cn < row.getLastCellNum(); cn++) {
-							Cell cell = row.getCell(cn);
-							CellType cellType = cell.getCellTypeEnum();
-							switch (cellType) {
-							case STRING:
-								command.addParam(row.getCell(cn).getStringCellValue());
-								break;
-							case NUMERIC:
-								command.addParam(row.getCell(cn).getNumericCellValue());
-								break;
-							default:
-								break;
-							}
-						}
-						System.out.println(step);
-
-						currentScenario.getSteps().add(step);
-					}
-
-				} else {
-
-					System.out.println("Scenario");
-
-					String desc = row.getCell(0).getStringCellValue();
-					String name = row.getCell(1).getStringCellValue();
-
-					currentScenario = new Scenario();
-
-					currentScenario.setName(name);
-					currentScenario.setDesc(desc);
-					currentScenario.setSteps(new ArrayList<Step>());
-
-					feature.getScenarios().add(currentScenario);
-
-				}
-
-			}
-		}
-	}
-
-	private String getStringCellValue(Row row, int i) {
-		Cell cell = row.getCell(i);
-		if (cell == null) {
-			return "";
 		}
 
-		return cell.getStringCellValue();
+		execution.generate();
+
+		execution.addRecordTo(data);
 	}
 
-	private boolean implicitlyWaitProperty(Row row) {
-
-		String title = row.getCell(0).getStringCellValue();
-
-		return "尋找元素等待時間".equals(title);
-	}
-
-	private boolean isDesiredCapability(Row row) {
-
-		String title = row.getCell(0).getStringCellValue();
-
-		if (getCapabilityNameMapper().get(title) != null) {
-			return true;
+	private HandlerExecution<?> getHandler(XSSFSheet sheet) {
+		for (ExcelSheetMapper<?> mapper : mappers) {
+			HandlerExecution<?> handle = mapper.getHandler(sheet);
+			if (handle != null)
+				return handle;
 		}
-
-		if (DesiredCapabilityUtils.isIOSMobileCapability(title)) {
-			return true;
-		}
-
-		return false;
-	}
-
-	private Map<String, String> getCapabilityNameMapper() {
-		Map<String, String> mapper = new HashMap<>();
-
-		mapper.put("App路徑", MobileCapabilityType.APP);
-		mapper.put("Appium版本", MobileCapabilityType.APPIUM_VERSION);
-
-		mapper.put("手機選項", MobileCapabilityType.DEVICE_NAME);
-		mapper.put("作業系統選項", MobileCapabilityType.PLATFORM_VERSION);
-
-		return mapper;
-	}
-
-	private boolean isTitleColumn(Row row) {
-		return "使用者身份".equals(row.getCell(0).getStringCellValue());
-	}
-
-	private boolean checkAccountInfo(Row row) {
-		return !IntStream.range(0, 4).anyMatch((index) -> {
-			Cell cell = row.getCell(index);
-			String cellValue;
-			if (cell == null) {
-				return true;
-			}
-			cellValue = cell.getStringCellValue();
-			return StringUtils.isEmpty(cellValue);
-		});
+		return null;
 	}
 
 	public Map<String, Object> getProperties() {
@@ -360,6 +189,10 @@ public class ExcelReader {
 
 	public int getCount() {
 		return count;
+	}
+
+	public Map<String, Object> getData() {
+		return data;
 	}
 
 }

@@ -22,9 +22,7 @@ public class ExcelReaderTest {
 	public void test() throws FileNotFoundException, IOException {
 		ExcelReader reader = new ExcelReader(path);
 
-		reader.test();
+		reader.read();
 		reader.showData();
 	}
-
-
 }
