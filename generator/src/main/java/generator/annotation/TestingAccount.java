@@ -8,6 +8,8 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface Cyndi9478 {
-	public boolean noReset() default true;
+public @interface TestingAccount {
+	public String pid() default "";
+	public String password() default "";
+	public String userName() default "";
 }

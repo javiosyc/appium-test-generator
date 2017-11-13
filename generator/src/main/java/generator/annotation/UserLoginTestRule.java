@@ -6,7 +6,7 @@ import org.junit.runners.model.Statement;
 
 import junit.framework.Test;
 
-public class CyndiTestRule78 implements TestRule {
+public class UserLoginTestRule implements TestRule {
 
 	private Boolean hasUser;
 
@@ -17,7 +17,7 @@ public class CyndiTestRule78 implements TestRule {
 	@Override
 	public Statement apply(Statement base, Description description) {
 
-		Cyndi78 c = description.getAnnotation(Cyndi78.class);
+		TestingAccount c = description.getAnnotation(TestingAccount.class);
 		if (c != null) {
 			userName = c.userName();
 			pid = c.pid();

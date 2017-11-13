@@ -29,10 +29,11 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.MethodSpec.Builder;
 import com.squareup.javapoet.TypeSpec;
 
-import generator.annotation.Cyndi78;
-import generator.annotation.Cyndi9478;
-import generator.annotation.CyndiTestRule;
-import generator.annotation.CyndiTestRule78;
+import generator.annotation.NoResetSetting;
+import generator.annotation.NoResetSettingRule;
+import generator.annotation.TestingAccount;
+
+import generator.annotation.UserLoginTestRule;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.ios.IOSDriver;
@@ -106,6 +107,8 @@ public class AppiumTestGenerator {
 
 		Builder methodBuilder = generateDefaultTestMethod(scenario.getName());
 
+		methodBuilder.addJavadoc(scenario.getDesc() + "\n");
+
 		for (Step step : scenario.getSteps()) {
 
 			methodBuilder.addComment("$L $L $L $L ", step.getGherkinType(), step.getDesc(), step.getCommand().getType(),
@@ -170,10 +173,10 @@ public class AppiumTestGenerator {
 						}
 					}
 
-					methodBuilder.addCode("$L.findElement($T.name(\"$L\")).sendKeys($L);\n", driverName, By.class,
+					methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,methodName,
 							element, "\"" + value + "\"");
 				}
-			} else if ("TouchAction".equals(commandType)) {
+			} else if ("TouchAction_0.5".equals(commandType)) {
 				methodBuilder.addCode("(new $T($L)).press(180,500).moveTo(0,-400).release().perform();\n",
 						TouchAction.class, driverName);
 			} else if ("Waiting".equals(commandType)) {
@@ -192,7 +195,7 @@ public class AppiumTestGenerator {
 				methodBuilder.addCode("$T.$L($L,$L,$L,$L);\n", utilClass, clazz.getName(), driverName, userNameField,
 						passwordField, pidField);
 
-				AnnotationSpec annotationSpec = AnnotationSpec.builder(Cyndi9478.class)
+				AnnotationSpec annotationSpec = AnnotationSpec.builder(NoResetSetting.class)
 						.addMember("noReset", "$L", clazz.isNoReset()).build();
 
 				methodBuilder.addAnnotation(annotationSpec);
@@ -201,12 +204,10 @@ public class AppiumTestGenerator {
 
 				AccountInfo acc = accountInfos.get(desc);
 
-				AnnotationSpec annotationSpec = AnnotationSpec.builder(Cyndi78.class)
+				AnnotationSpec annotationSpec = AnnotationSpec.builder(TestingAccount.class)
 						.addMember("userName", "$S", acc.getUserName()).addMember("password", "$S", acc.getPassword())
 						.addMember("pid", "$S", acc.getPid()).build();
 				methodBuilder.addAnnotation(annotationSpec);
-
-				methodBuilder.addJavadoc(acc.getComment() + "\n");
 			}
 		}
 
@@ -287,12 +288,12 @@ public class AppiumTestGenerator {
 	private void addFieldForTest(TypeSpec.Builder classBuilder) {
 		classBuilder.addField(IOSDriver.class, driverName, Modifier.PRIVATE);
 
-		FieldSpec fieldSpec = FieldSpec.builder(CyndiTestRule.class, "rule").addAnnotation(Rule.class)
-				.addModifiers(Modifier.PUBLIC).initializer("new $T()", CyndiTestRule.class).build();
+		FieldSpec fieldSpec = FieldSpec.builder(NoResetSettingRule.class, "rule").addAnnotation(Rule.class)
+				.addModifiers(Modifier.PUBLIC).initializer("new $T()", NoResetSettingRule.class).build();
 		classBuilder.addField(fieldSpec);
 
-		FieldSpec memberFieldSpec = FieldSpec.builder(CyndiTestRule78.class, userRule).addAnnotation(Rule.class)
-				.addModifiers(Modifier.PUBLIC).initializer("new $T()", CyndiTestRule78.class).build();
+		FieldSpec memberFieldSpec = FieldSpec.builder(UserLoginTestRule.class, userRule).addAnnotation(Rule.class)
+				.addModifiers(Modifier.PUBLIC).initializer("new $T()", UserLoginTestRule.class).build();
 		classBuilder.addField(memberFieldSpec);
 
 		classBuilder.addField(String.class, userNameField, Modifier.PRIVATE);
@@ -379,15 +380,15 @@ public class AppiumTestGenerator {
 					}
 
 					if (value.startsWith("${") && value.endsWith("}")) {
-						methodBuilder.addCode("$L.findElement($T.name(\"$L\")).sendKeys($L);\n", driverName, By.class,
+						methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,methodName,
 								element, value.substring(2, value.length() - 1));
 					} else {
 
-						methodBuilder.addCode("$L.findElement($T.name(\"$L\")).sendKeys($L);\n", driverName, By.class,
+						methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,methodName,
 								element, "\"" + value + "\"");
 					}
 				}
-			} else if ("TouchAction".equals(commandType)) {
+			} else if ("TouchAction_0.5".equals(commandType)) {
 				methodBuilder.addCode("(new $T($L)).press(180,500).moveTo(0,-400).release().perform();\n",
 						TouchAction.class, driverName);
 			} else if ("Waiting".equals(commandType)) {
