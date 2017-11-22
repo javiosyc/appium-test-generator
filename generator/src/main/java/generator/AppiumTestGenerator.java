@@ -72,6 +72,9 @@ public class AppiumTestGenerator {
 	private String passwordField = "password";
 	private String defaultUtilPackage = "module";
 
+	private String widthField = "width";
+	private String heightField = "height";
+
 	public AppiumTestGenerator(ExcelReader reader) {
 
 		Map<String, Object> data = reader.getData();
@@ -173,12 +176,18 @@ public class AppiumTestGenerator {
 						}
 					}
 
-					methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,methodName,
-							element, "\"" + value + "\"");
+					methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,
+							methodName, element, "\"" + value + "\"");
 				}
-			} else if ("TouchAction_0.5".equals(commandType)) {
-				methodBuilder.addCode("(new $T($L)).press(180,500).moveTo(0,-400).release().perform();\n",
-						TouchAction.class, driverName);
+			} else if (commandType.startsWith("TouchAction_")) {
+
+				String distance = commandType.replaceAll("TouchAction_", "");
+
+				methodBuilder.addCode(
+						"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (int)($L * -" + distance
+								+ ")).release().perform();\n",
+						TouchAction.class, driverName, widthField, heightField, heightField);
+
 			} else if ("Waiting".equals(commandType)) {
 				Double seconds = (Double) params.get(0);
 
@@ -299,6 +308,9 @@ public class AppiumTestGenerator {
 		classBuilder.addField(String.class, userNameField, Modifier.PRIVATE);
 		classBuilder.addField(String.class, pidField, Modifier.PRIVATE);
 		classBuilder.addField(String.class, passwordField, Modifier.PRIVATE);
+
+		classBuilder.addField(Integer.class, widthField, Modifier.PRIVATE);
+		classBuilder.addField(Integer.class, heightField, Modifier.PRIVATE);
 	}
 
 	private void generateUtilsClass() {
@@ -380,17 +392,22 @@ public class AppiumTestGenerator {
 					}
 
 					if (value.startsWith("${") && value.endsWith("}")) {
-						methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,methodName,
-								element, value.substring(2, value.length() - 1));
+						methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,
+								methodName, element, value.substring(2, value.length() - 1));
 					} else {
 
-						methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,methodName,
-								element, "\"" + value + "\"");
+						methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,
+								methodName, element, "\"" + value + "\"");
 					}
 				}
-			} else if ("TouchAction_0.5".equals(commandType)) {
-				methodBuilder.addCode("(new $T($L)).press(180,500).moveTo(0,-400).release().perform();\n",
-						TouchAction.class, driverName);
+			} else if (commandType.startsWith("TouchAction_")) {
+
+				String distance = commandType.replaceAll("TouchAction_", "");
+
+				methodBuilder.addCode(
+						"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (-1) * $L * " + distance
+								+ ").release().perform();\n",
+						TouchAction.class, driverName, widthField, heightField, heightField);
 			} else if ("Waiting".equals(commandType)) {
 				Double seconds = (Double) params.get(0);
 
@@ -428,6 +445,9 @@ public class AppiumTestGenerator {
 
 		builder.add("$L.manage().timeouts().implicitlyWait($L ,$T.SECONDS);\n", driverName, implicitlyWaitSec,
 				TimeUnit.class);
+
+		builder.add("$L = $L.manage().window().getSize().getWidth();\n", widthField, driverName);
+		builder.add("$L = $L.manage().window().getSize().getHeight();\n", heightField, driverName);
 
 		return builder.build();
 	}
