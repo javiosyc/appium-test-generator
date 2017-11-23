@@ -192,12 +192,8 @@ public class AppiumTestGenerator {
 							"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (-1) * $L / 2 ).release().perform();\n",
 							TouchAction.class, driverName, widthField, heightField, heightField);
 				}
-			} else if ("Waiting".equals(commandType)) {
-				Double seconds = (Double) params.get(0);
-
-				methodBuilder.addCode("try { \n	$T.sleep($L* 1000);\n}catch($T e) { e.printStackTrace();\n}\n",
-						Thread.class, seconds.intValue(), InterruptedException.class);
-
+			} else if (commandType.startsWith("Waiting")) {
+				appendWaitingCode(methodBuilder, commandType, params);
 			} else if (utilMethodsMapper.containsKey(desc)) {
 
 				CommonMethod clazz = utilMethodsMapper.get(desc);
@@ -417,11 +413,9 @@ public class AppiumTestGenerator {
 							"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (-1) * $L / 2 ).release().perform();\n",
 							TouchAction.class, driverName, widthField, heightField, heightField);
 				}
-			} else if ("Waiting".equals(commandType)) {
-				Double seconds = (Double) params.get(0);
+			} else if (commandType.startsWith("Waiting")) {
 
-				methodBuilder.addCode("try { \n	$T.sleep($L* 1000);\n}catch($T e) { e.printStackTrace();\n}\n",
-						Thread.class, seconds.intValue(), InterruptedException.class);
+				appendWaitingCode(methodBuilder, commandType, params);
 
 			} else if ("".equals(commandType)) {
 
@@ -430,6 +424,18 @@ public class AppiumTestGenerator {
 		}
 
 		return methodBuilder.build();
+	}
+
+	private void appendWaitingCode(Builder methodBuilder, String commandType, List<Object> params) {
+		String secString = StringUtils.trim(commandType.replaceAll("Waiting", ""));
+		int seconds;
+		if (StringUtils.isBlank(secString)) {
+			seconds = Double.valueOf(String.valueOf(params.get(0))).intValue();
+		} else {
+			seconds = Integer.parseInt(StringUtils.trim(StringUtils.strip(secString, "s")));
+		}
+		methodBuilder.addCode("try { \n	$T.sleep($L* 1000);\n}catch($T e) { e.printStackTrace();\n}\n", Thread.class,
+				seconds, InterruptedException.class);
 	}
 
 	public void writeTo() {
