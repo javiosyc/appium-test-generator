@@ -183,11 +183,15 @@ public class AppiumTestGenerator {
 
 				String distance = commandType.replaceAll("TouchAction_", "");
 
-				methodBuilder.addCode(
-						"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (int)($L * -" + distance
-								+ ")).release().perform();\n",
-						TouchAction.class, driverName, widthField, heightField, heightField);
+				double distanceDouble = Double.parseDouble(distance);
 
+				int times = new Double(distanceDouble / 0.5).intValue();
+
+				for (int i = 0; i < times; i++) {
+					methodBuilder.addCode(
+							"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (-1) * $L / 2 ).release().perform();\n",
+							TouchAction.class, driverName, widthField, heightField, heightField);
+				}
 			} else if ("Waiting".equals(commandType)) {
 				Double seconds = (Double) params.get(0);
 
@@ -404,10 +408,15 @@ public class AppiumTestGenerator {
 
 				String distance = commandType.replaceAll("TouchAction_", "");
 
-				methodBuilder.addCode(
-						"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (-1) * $L * " + distance
-								+ ").release().perform();\n",
-						TouchAction.class, driverName, widthField, heightField, heightField);
+				double distanceDouble = Double.parseDouble(distance);
+
+				int times = new Double(distanceDouble / 0.5).intValue();
+
+				for (int i = 0; i < times; i++) {
+					methodBuilder.addCode(
+							"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (-1) * $L / 2 ).release().perform();\n",
+							TouchAction.class, driverName, widthField, heightField, heightField);
+				}
 			} else if ("Waiting".equals(commandType)) {
 				Double seconds = (Double) params.get(0);
 
