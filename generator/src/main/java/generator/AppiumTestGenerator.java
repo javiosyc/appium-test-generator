@@ -150,48 +150,12 @@ public class AppiumTestGenerator {
 				String action = (String) params.get(1);
 
 				if ("click".equals(action)) {
-					String element = (String) params.get(0);
-					methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).click();\n", driverName, By.class, methodName,
-							element);
+					appendClickCode(methodBuilder, params, methodName);
 				} else if ("sendKeys".equals(action)) {
-					String element = (String) params.get(0);
-
-					String value = String.valueOf(params.get(2));
-
-					if (value.startsWith("#{") && value.endsWith("}")) {
-
-						String[] tag = value.substring(2, value.length() - 1).split("\\.");
-						AccountInfo acc = accountInfos.get(tag[0]);
-
-						String m = tag[1];
-
-						if (acc != null) {
-							if (StringUtils.equalsIgnoreCase(m, "password")) {
-								value = acc.getPassword();
-							} else if (StringUtils.equalsIgnoreCase(m, "pid")) {
-								value = acc.getPid();
-							} else if (StringUtils.equalsIgnoreCase(m, "userName")) {
-								value = acc.getUserName();
-							}
-						}
-					}
-
-					methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,
-							methodName, element, "\"" + value + "\"");
+					appendSendKeyCode(methodBuilder, params, methodName);
 				}
 			} else if (commandType.startsWith("TouchAction_")) {
-
-				String distance = commandType.replaceAll("TouchAction_", "");
-
-				double distanceDouble = Double.parseDouble(distance);
-
-				int times = new Double(distanceDouble / 0.5).intValue();
-
-				for (int i = 0; i < times; i++) {
-					methodBuilder.addCode(
-							"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (-1) * $L / 2 ).release().perform();\n",
-							TouchAction.class, driverName, widthField, heightField, heightField);
-				}
+				appendTouchActionCode(methodBuilder, commandType);
 			} else if (commandType.startsWith("Waiting")) {
 				appendWaitingCode(methodBuilder, commandType, params);
 			} else if (utilMethodsMapper.containsKey(desc)) {
@@ -221,6 +185,11 @@ public class AppiumTestGenerator {
 		}
 
 		return methodBuilder.build();
+	}
+
+	private void appendClickCode(Builder methodBuilder, List<Object> params, String methodName) {
+		String element = (String) params.get(0);
+		methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).click();\n", driverName, By.class, methodName, element);
 	}
 
 	public MethodSpec generateSetUpMethod() {
@@ -355,6 +324,7 @@ public class AppiumTestGenerator {
 			List<Object> params = step.getCommand().getParams();
 
 			if ("ByName".equals(commandType) || "ByXPath".equals(commandType)) {
+
 				String methodName = StringUtils.lowerCase(commandType.substring(2));
 				if (params.isEmpty()) {
 					continue;
@@ -365,58 +335,14 @@ public class AppiumTestGenerator {
 				String action = (String) params.get(1);
 
 				if ("click".equals(action)) {
-					String element = (String) params.get(0);
-					methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).click();\n", driverName, By.class, methodName,
-							element);
+					appendClickCode(methodBuilder, params, methodName);
 				} else if ("sendKeys".equals(action)) {
-					String element = String.valueOf(params.get(0));
-
-					String value = String.valueOf(params.get(2));
-
-					if (value.startsWith("#{") && value.endsWith("}")) {
-
-						String[] tag = value.substring(2, value.length() - 1).split("\\.");
-						AccountInfo acc = accountInfos.get(tag[0]);
-
-						String m = tag[1];
-
-						if (acc != null) {
-							if (StringUtils.equalsIgnoreCase(m, "password")) {
-								value = acc.getPassword();
-							} else if (StringUtils.equalsIgnoreCase(m, "pid")) {
-								value = acc.getPid();
-							} else if (StringUtils.equalsIgnoreCase(m, "userName")) {
-								value = acc.getUserName();
-							}
-						}
-					}
-
-					if (value.startsWith("${") && value.endsWith("}")) {
-						methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,
-								methodName, element, value.substring(2, value.length() - 1));
-					} else {
-
-						methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class,
-								methodName, element, "\"" + value + "\"");
-					}
+					appendSendKeyCode(methodBuilder, params, methodName);
 				}
 			} else if (commandType.startsWith("TouchAction_")) {
-
-				String distance = commandType.replaceAll("TouchAction_", "");
-
-				double distanceDouble = Double.parseDouble(distance);
-
-				int times = new Double(distanceDouble / 0.5).intValue();
-
-				for (int i = 0; i < times; i++) {
-					methodBuilder.addCode(
-							"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (-1) * $L / 2 ).release().perform();\n",
-							TouchAction.class, driverName, widthField, heightField, heightField);
-				}
+				appendTouchActionCode(methodBuilder, commandType);
 			} else if (commandType.startsWith("Waiting")) {
-
 				appendWaitingCode(methodBuilder, commandType, params);
-
 			} else if ("".equals(commandType)) {
 
 			}
@@ -424,6 +350,52 @@ public class AppiumTestGenerator {
 		}
 
 		return methodBuilder.build();
+	}
+
+	private void appendSendKeyCode(Builder methodBuilder, List<Object> params, String methodName) {
+		String element = String.valueOf(params.get(0));
+
+		String value = String.valueOf(params.get(2));
+
+		if (value.startsWith("#{") && value.endsWith("}")) {
+
+			String[] tag = value.substring(2, value.length() - 1).split("\\.");
+			AccountInfo acc = accountInfos.get(tag[0]);
+
+			String m = tag[1];
+
+			if (acc != null) {
+				if (StringUtils.equalsIgnoreCase(m, "password")) {
+					value = acc.getPassword();
+				} else if (StringUtils.equalsIgnoreCase(m, "pid")) {
+					value = acc.getPid();
+				} else if (StringUtils.equalsIgnoreCase(m, "userName")) {
+					value = acc.getUserName();
+				}
+			}
+		}
+
+		if (value.startsWith("${") && value.endsWith("}")) {
+			methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class, methodName,
+					element, value.substring(2, value.length() - 1));
+		} else {
+			methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class, methodName,
+					element, "\"" + value + "\"");
+		}
+	}
+
+	private void appendTouchActionCode(Builder methodBuilder, String commandType) {
+		String distance = commandType.replaceAll("TouchAction_", "");
+
+		double distanceDouble = Double.parseDouble(distance);
+
+		int times = new Double(distanceDouble / 0.5).intValue();
+
+		for (int i = 0; i < times; i++) {
+			methodBuilder.addCode(
+					"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (-1) * $L / 2 ).release().perform();\n",
+					TouchAction.class, driverName, widthField, heightField, heightField);
+		}
 	}
 
 	private void appendWaitingCode(Builder methodBuilder, String commandType, List<Object> params) {
