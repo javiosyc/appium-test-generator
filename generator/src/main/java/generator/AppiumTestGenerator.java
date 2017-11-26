@@ -172,8 +172,8 @@ public class AppiumTestGenerator {
 				ClassName utilClass = ClassName.get(
 						packageName + "." + defaultUtilPackage + "." + clazz.getPackageName(), clazz.getClassName());
 
-				methodBuilder.addCode("$T.$L($L,$L,$L,$L);\n", utilClass, clazz.getName(), driverName, userNameField,
-						passwordField, pidField);
+				methodBuilder.addCode("$T.$L($L,$L,$L,$L,$L);\n", utilClass, clazz.getName(), driverName, userNameField,
+						passwordField, pidField, implicitlyWaitSecName);
 
 				AnnotationSpec annotationSpec = AnnotationSpec.builder(NoResetSetting.class)
 						.addMember("noReset", "$L", clazz.isNoReset()).build();
@@ -321,8 +321,9 @@ public class AppiumTestGenerator {
 		Builder methodBuilder = MethodSpec.methodBuilder(method.getName()).addModifiers(Modifier.PUBLIC)
 				.addModifiers(Modifier.STATIC).addParameter(IOSDriver.class, driverName)
 				.addParameter(String.class, userNameField).addParameter(String.class, passwordField)
-				.addParameter(String.class, pidField).returns(void.class).addJavadoc(method.getDesc() + "\n@param "
-						+ driverName + "\n@param userName\n@param password\n@param pid\n@return\n");
+				.addParameter(String.class, pidField).addParameter(TypeName.LONG, implicitlyWaitSecName)
+				.returns(void.class).addJavadoc(method.getDesc() + "\n@param " + driverName
+						+ "\n@param userName\n@param password\n@param pid\n@return\n");
 
 		for (Step step : method.getSteps()) {
 			methodBuilder.addComment("$L $L $L ", step.getDesc(), step.getCommand().getType(),
