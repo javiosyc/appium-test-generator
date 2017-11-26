@@ -343,13 +343,17 @@ public class AppiumTestGenerator {
 				appendTouchActionCode(methodBuilder, commandType);
 			} else if (commandType.startsWith("Waiting")) {
 				appendWaitingCode(methodBuilder, commandType, params);
-			} else if ("".equals(commandType)) {
-
+			} else if ("CheckAlert".equals(commandType)) {
+				appendCheckAlertCode(methodBuilder, commandType, params);
 			}
 
 		}
 
 		return methodBuilder.build();
+	}
+
+	private void appendCheckAlertCode(Builder methodBuilder, String commandType, List<Object> params) {
+
 	}
 
 	private void appendSendKeyCode(Builder methodBuilder, List<Object> params, String methodName) {
@@ -404,7 +408,7 @@ public class AppiumTestGenerator {
 		if (StringUtils.isBlank(secString)) {
 			seconds = Double.valueOf(String.valueOf(params.get(0))).intValue();
 		} else {
-			seconds = Integer.parseInt(StringUtils.trim(StringUtils.strip(secString, "s")));
+			seconds = Integer.parseInt(StringUtils.trim(StringUtils.strip(StringUtils.strip(secString, "_"), "s")));
 		}
 		methodBuilder.addCode("try { \n	$T.sleep($L* 1000);\n}catch($T e) { e.printStackTrace();\n}\n", Thread.class,
 				seconds, InterruptedException.class);
