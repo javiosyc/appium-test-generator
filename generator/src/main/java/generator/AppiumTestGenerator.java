@@ -26,6 +26,7 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.MethodSpec.Builder;
 import com.squareup.javapoet.TypeSpec;
 
@@ -34,6 +35,7 @@ import generator.annotation.NoResetSettingRule;
 import generator.annotation.TestingAccount;
 
 import generator.annotation.UserLoginTestRule;
+import generator.utils.CommandUtils;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.ios.IOSDriver;
@@ -68,6 +70,7 @@ public class AppiumTestGenerator {
 	private List<JavaFile> javaFiles = new ArrayList<>();
 	private String userRule = "userRule";
 	private String userNameField = "userName";
+	private String implicitlyWaitSecName = "implicitlyWaitSec";
 	private String pidField = "pid";
 	private String passwordField = "password";
 	private String defaultUtilPackage = "module";
@@ -158,7 +161,11 @@ public class AppiumTestGenerator {
 				appendTouchActionCode(methodBuilder, commandType);
 			} else if (commandType.startsWith("Waiting")) {
 				appendWaitingCode(methodBuilder, commandType, params);
-			} else if (utilMethodsMapper.containsKey(desc)) {
+			} else if ("CheckAlert".equals(commandType)) {
+				appendCheckAlertCode(methodBuilder, commandType, params);
+			}
+
+			else if (utilMethodsMapper.containsKey(desc)) {
 
 				CommonMethod clazz = utilMethodsMapper.get(desc);
 
@@ -280,6 +287,8 @@ public class AppiumTestGenerator {
 
 		classBuilder.addField(Integer.class, widthField, Modifier.PRIVATE);
 		classBuilder.addField(Integer.class, heightField, Modifier.PRIVATE);
+
+		classBuilder.addField(TypeName.LONG, implicitlyWaitSecName, Modifier.PRIVATE);
 	}
 
 	private void generateUtilsClass() {
@@ -346,14 +355,15 @@ public class AppiumTestGenerator {
 			} else if ("CheckAlert".equals(commandType)) {
 				appendCheckAlertCode(methodBuilder, commandType, params);
 			}
-
 		}
 
 		return methodBuilder.build();
 	}
 
 	private void appendCheckAlertCode(Builder methodBuilder, String commandType, List<Object> params) {
-
+		String elementName = String.valueOf(params.get(0));
+		methodBuilder.addCode("$T.presenceClick($L,2L,$S,$L );\n", CommandUtils.class, driverName, elementName,
+				implicitlyWaitSecName);
 	}
 
 	private void appendSendKeyCode(Builder methodBuilder, List<Object> params, String methodName) {
@@ -433,6 +443,8 @@ public class AppiumTestGenerator {
 
 		builder.add("$L= new $T<$T>(new $T(\"$L\"), $L);\n", driverName, IOSDriver.class, MobileElement.class,
 				URL.class, url, variable);
+
+		builder.add("$L= $L;\n", implicitlyWaitSecName, implicitlyWaitSec);
 
 		builder.add("$L.manage().timeouts().implicitlyWait($L ,$T.SECONDS);\n", driverName, implicitlyWaitSec,
 				TimeUnit.class);
