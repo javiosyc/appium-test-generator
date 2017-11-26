@@ -138,7 +138,7 @@ public class AppiumTestGenerator {
 					methodBuilder.addCode("$T<$T> expectedElements = $L.findElements($T.$L(\"$L\"));\n", List.class,
 							MobileElement.class, driverName, By.class, methodName, element);
 
-					methodBuilder.addCode("assertThat(expectedElements.size(), equalTo(1));\n");
+					methodBuilder.addCode("assertTrue(expectedElements.size() >0);\n");
 
 				}
 
@@ -265,7 +265,7 @@ public class AppiumTestGenerator {
 			TypeSpec typeSpec = classBuilder.build();
 
 			javaFiles.add(JavaFile.builder(packageName + "." + feature.getPackageName(), typeSpec)
-					.addStaticImport(org.hamcrest.CoreMatchers.class, "*").addStaticImport(org.junit.Assert.class, "*")
+					.addStaticImport(org.junit.Assert.class, "*")
 					.build());
 		}
 	}
@@ -417,7 +417,11 @@ public class AppiumTestGenerator {
 		String secString = StringUtils.trim(commandType.replaceAll("Waiting", ""));
 		int seconds;
 		if (StringUtils.isBlank(secString)) {
-			seconds = Double.valueOf(String.valueOf(params.get(0))).intValue();
+			if (params.size() == 0) {
+				return;
+			} else {
+				seconds = Double.valueOf(String.valueOf(params.get(0))).intValue();
+			}
 		} else {
 			seconds = Integer.parseInt(StringUtils.trim(StringUtils.strip(StringUtils.strip(secString, "_"), "s")));
 		}
