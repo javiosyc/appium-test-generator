@@ -24,31 +24,23 @@ import models.Feature;
 
 public class ExcelReader {
 
+	private List<AccountInfo> accounts = new ArrayList<>();
+
+	private final int count;
+
+	private Map<String, Object> data = new HashMap<>();
+
 	private Map<String, Object> desiredCapabilities = new HashMap<>();
 
-	private Map<String, Object> properties = new HashMap<>();
+	private final String excelFile;
 
 	private List<Feature> features = new ArrayList<>();
 
 	private List<ExcelSheetMapper<?>> mappers = new ArrayList<>();
 
-	public List<Feature> getFeatures() {
-		return features;
-	}
-
-	private Map<String, Object> data = new HashMap<>();
-
-	private List<AccountInfo> accounts = new ArrayList<>();
-
-	private final String excelFile;
+	private Map<String, Object> properties = new HashMap<>();
 
 	private final XSSFWorkbook wb;
-
-	private final int count;
-
-	public XSSFWorkbook getWb() {
-		return wb;
-	}
 
 	public ExcelReader(String excelFile) throws FileNotFoundException, IOException {
 		this.excelFile = excelFile;
@@ -59,6 +51,38 @@ public class ExcelReader {
 		mappers.add(new SettingMapper());
 		mappers.add(new AccountMapper());
 		mappers.add(new CommonStepMapper());
+	}
+
+	public List<AccountInfo> getAccounts() {
+		return accounts;
+	}
+
+	public int getCount() {
+		return count;
+	}
+
+	public Map<String, Object> getData() {
+		return data;
+	}
+
+	public Map<String, Object> getDesiredCapabilities() {
+		return desiredCapabilities;
+	}
+
+	public String getExcelFile() {
+		return excelFile;
+	}
+
+	public List<Feature> getFeatures() {
+		return features;
+	}
+
+	public Map<String, Object> getProperties() {
+		return properties;
+	}
+
+	public XSSFWorkbook getWb() {
+		return wb;
 	}
 
 	public void read() throws IOException {
@@ -114,7 +138,7 @@ public class ExcelReader {
 
 					if (list.get(0) instanceof AccountInfo) {
 
-						List<AccountInfo> accounts = (List<AccountInfo>) list;
+						List<AccountInfo> accounts = list;
 
 						accounts.forEach((acc) -> {
 							System.out.println(acc.getType() + "-" + acc.getUserName() + ":" + acc.getPid() + ":"
@@ -149,6 +173,15 @@ public class ExcelReader {
 		}
 	}
 
+	private HandlerExecution<?> getHandler(XSSFSheet sheet) {
+		for (ExcelSheetMapper<?> mapper : mappers) {
+			HandlerExecution<?> handle = mapper.getHandler(sheet);
+			if (handle != null)
+				return handle;
+		}
+		return null;
+	}
+
 	private void parseSheet(XSSFSheet sheet) {
 
 		HandlerExecution<?> execution = getHandler(sheet);
@@ -160,39 +193,6 @@ public class ExcelReader {
 		execution.generate();
 
 		execution.addRecordTo(data);
-	}
-
-	private HandlerExecution<?> getHandler(XSSFSheet sheet) {
-		for (ExcelSheetMapper<?> mapper : mappers) {
-			HandlerExecution<?> handle = mapper.getHandler(sheet);
-			if (handle != null)
-				return handle;
-		}
-		return null;
-	}
-
-	public Map<String, Object> getProperties() {
-		return properties;
-	}
-
-	public String getExcelFile() {
-		return excelFile;
-	}
-
-	public Map<String, Object> getDesiredCapabilities() {
-		return desiredCapabilities;
-	}
-
-	public List<AccountInfo> getAccounts() {
-		return accounts;
-	}
-
-	public int getCount() {
-		return count;
-	}
-
-	public Map<String, Object> getData() {
-		return data;
 	}
 
 }
