@@ -4,6 +4,12 @@ import generator.handlers.CommonStepHandler;
 import generator.handlers.HandlerExecution;
 import models.CommonUtilClass;
 
+/**
+ * 判斷登入情境共用步驟commonStepSheet
+ *
+ * @author Cyndi
+ *
+ */
 public class CommonStepMapper extends AbstractExcelSheetMapper<CommonUtilClass> {
 
 	@Override
@@ -13,6 +19,6 @@ public class CommonStepMapper extends AbstractExcelSheetMapper<CommonUtilClass> 
 
 	@Override
 	protected String getType() {
-		return "utils";
+		return "commonStep";
 	}
 }

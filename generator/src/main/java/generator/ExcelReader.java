@@ -50,8 +50,7 @@ public class ExcelReader {
 
 	/**
 	 * 
-	 * @param excelFile
-	 *            檔案路徑
+	 * @param excelFile檔案路徑
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
@@ -99,7 +98,7 @@ public class ExcelReader {
 	}
 
 	/**
-	 * 開始讀取
+	 * 開始讀取Excel
 	 * 
 	 * @throws IOException
 	 */
@@ -112,7 +111,7 @@ public class ExcelReader {
 	}
 
 	/**
-	 * 印出excel內容
+	 * 印出Excel內容
 	 */
 	public void showData() {
 
@@ -194,6 +193,11 @@ public class ExcelReader {
 		}
 	}
 
+	/**
+	 * 
+	 * @param sheet
+	 * @return
+	 */
 	private HandlerExecution<?> getHandler(XSSFSheet sheet) {
 		for (ExcelSheetMapper<?> mapper : mappers) {
 			HandlerExecution<?> handle = mapper.getHandler(sheet);
@@ -203,6 +207,10 @@ public class ExcelReader {
 		return null;
 	}
 
+	/**
+	 * 
+	 * @param sheet
+	 */
 	private void parseSheet(XSSFSheet sheet) {
 
 		HandlerExecution<?> execution = getHandler(sheet);

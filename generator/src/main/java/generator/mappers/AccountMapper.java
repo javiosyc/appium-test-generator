@@ -4,9 +4,14 @@ import java.util.List;
 
 import generator.handlers.AccountHandler;
 import generator.handlers.HandlerExecution;
-
 import models.AccountInfo;
 
+/**
+ * 判斷測試資料Sheet
+ *
+ * @author Cyndi
+ *
+ */
 public class AccountMapper extends AbstractExcelSheetMapper<List<AccountInfo>> {
 
 	@Override
@@ -18,5 +23,4 @@ public class AccountMapper extends AbstractExcelSheetMapper<List<AccountInfo>> {
 	protected String getType() {
 		return "data";
 	}
-
 }

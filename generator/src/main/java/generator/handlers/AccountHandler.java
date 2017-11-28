@@ -16,22 +16,48 @@ import com.google.common.collect.Iterators;
 
 import models.AccountInfo;
 
+/**
+ * 讀取Excel測試資料Sheet轉成AccountInfo
+ * 
+ * @author Cyndi
+ *
+ */
 public class AccountHandler implements HandlerExecution<List<AccountInfo>> {
-
-	private final XSSFSheet sheet;
 
 	private List<AccountInfo> accounts = new ArrayList<>();
 
 	private Map<String, Map<String, Object>> properties = new HashMap<>();
+
+	private final XSSFSheet sheet;
 
 	public AccountHandler(XSSFSheet sheet) {
 		this.sheet = sheet;
 	}
 
 	@Override
+	public void addRecordTo(Map<String, Object> store) {
+
+		List<AccountInfo> records = (List<AccountInfo>) store.get(getName());
+
+		if (records == null) {
+			records = new ArrayList<>();
+			records.addAll(accounts);
+
+			store.put(getName(), records);
+		} else {
+			records.addAll(accounts);
+		}
+	}
+
+	/**
+	 * 定義讀取規則，
+	 */
+	@Override
 	public void generate() {
 
 		Iterator<Row> rowIterator = sheet.iterator();
+
+		// 前進兩格，由第三列開始
 		Iterators.advance(rowIterator, 2);
 
 		while (rowIterator.hasNext()) {
@@ -56,27 +82,6 @@ public class AccountHandler implements HandlerExecution<List<AccountInfo>> {
 	}
 
 	@Override
-	public String getName() {
-		return "account";
-	}
-
-	@Override
-	public void addRecordTo(Map<String, Object> store) {
-
-		List<AccountInfo> records = (List<AccountInfo>) store.get(getName());
-
-		if (records == null) {
-			records = new ArrayList<>();
-			records.addAll(accounts);
-
-			store.put(getName(), records);
-		} else {
-
-			records.addAll(accounts);
-		}
-	}
-
-	@Override
 	public List<AccountInfo> getData() {
 		return accounts;
 	}
@@ -87,6 +92,17 @@ public class AccountHandler implements HandlerExecution<List<AccountInfo>> {
 		return null;
 	}
 
+	@Override
+	public String getName() {
+		return "account";
+	}
+
+	/**
+	 * 檢查測試資料前四格是否不為empty
+	 * 
+	 * @param row
+	 * @return
+	 */
 	private boolean checkAccountInfo(Row row) {
 		return !IntStream.range(0, 4).anyMatch((index) -> {
 			Cell cell = row.getCell(index);
@@ -99,6 +115,12 @@ public class AccountHandler implements HandlerExecution<List<AccountInfo>> {
 		});
 	}
 
+	/**
+	 * 檢查表格Title
+	 * 
+	 * @param row
+	 * @return
+	 */
 	private boolean isTitleColumn(Row row) {
 		return "使用者身份".equals(row.getCell(0).getStringCellValue());
 	}
