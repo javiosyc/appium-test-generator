@@ -22,6 +22,12 @@ import models.AccountInfo;
 import models.CommonUtilClass;
 import models.Feature;
 
+/**
+ * 讀取Excel各分頁欄位
+ * 
+ * @author Cyndi
+ *
+ */
 public class ExcelReader {
 
 	private List<AccountInfo> accounts = new ArrayList<>();
@@ -42,6 +48,13 @@ public class ExcelReader {
 
 	private final XSSFWorkbook wb;
 
+	/**
+	 * 
+	 * @param excelFile
+	 *            檔案路徑
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
 	public ExcelReader(String excelFile) throws FileNotFoundException, IOException {
 		this.excelFile = excelFile;
 		wb = new XSSFWorkbook(new FileInputStream(excelFile));
@@ -85,6 +98,11 @@ public class ExcelReader {
 		return wb;
 	}
 
+	/**
+	 * 開始讀取
+	 * 
+	 * @throws IOException
+	 */
 	public void read() throws IOException {
 		IntStream.range(0, count).forEach((index) -> {
 			parseSheet(wb.getSheetAt(index));
@@ -93,6 +111,9 @@ public class ExcelReader {
 		wb.close();
 	}
 
+	/**
+	 * 印出excel內容
+	 */
 	public void showData() {
 
 		for (Map.Entry<String, Object> entry : data.entrySet()) {
