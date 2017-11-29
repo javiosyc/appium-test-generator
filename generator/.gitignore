@@ -5,3 +5,4 @@
 /.classpath
 /data/
 /*.app/
+/**/*.DS_Store
