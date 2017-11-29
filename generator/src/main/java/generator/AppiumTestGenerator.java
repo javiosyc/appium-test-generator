@@ -26,14 +26,13 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.MethodSpec.Builder;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import generator.annotation.NoResetSetting;
 import generator.annotation.NoResetSettingRule;
 import generator.annotation.TestingAccount;
-
 import generator.annotation.UserLoginTestRule;
 import generator.utils.CommandUtils;
 import io.appium.java_client.MobileElement;
@@ -49,34 +48,34 @@ import models.Step;
 
 public class AppiumTestGenerator {
 
-	private final String driverName = "driver";
-	private String outputDir = "examples/test";
+	private Map<String, AccountInfo> accountInfos;
+	private Map<String, MethodSpec> defaultMethodSpec = new HashMap<>();
 
-	private String packageName = "sauce_appium_junit";
+	private String defaultUtilPackage = "module";
 
 	private Map<String, Object> desiredCapabilities;
+
+	private final String driverName = "driver";
 
 	private Map<String, Object> driverProperties;
 
 	private List<Feature> features;
 
-	private Map<String, AccountInfo> accountInfos;
-
-	private List<CommonUtilClass> utils;
-	private Map<String, CommonMethod> utilMethodsMapper = new HashMap<>();
-
-	private Map<String, MethodSpec> defaultMethodSpec = new HashMap<>();
+	private String heightField = "height";
+	private String implicitlyWaitSecName = "implicitlyWaitSec";
 
 	private List<JavaFile> javaFiles = new ArrayList<>();
-	private String userRule = "userRule";
-	private String userNameField = "userName";
-	private String implicitlyWaitSecName = "implicitlyWaitSec";
-	private String pidField = "pid";
-	private String passwordField = "password";
-	private String defaultUtilPackage = "module";
 
+	private String outputDir = "examples/test";
+	private String packageName = "sauce_appium_junit";
+	private String passwordField = "password";
+	private String pidField = "pid";
+	private String userNameField = "userName";
+	private String userRule = "userRule";
+	private Map<String, CommonMethod> utilMethodsMapper = new HashMap<>();
+
+	private List<CommonUtilClass> utils;
 	private String widthField = "width";
-	private String heightField = "height";
 
 	public AppiumTestGenerator(ExcelReader reader) {
 
@@ -92,7 +91,7 @@ public class AppiumTestGenerator {
 			accountInfos.put(acc.getType(), acc);
 		}
 
-		utils = (List<CommonUtilClass>) data.get("utils");
+		utils = (List<CommonUtilClass>) data.get("commonStep");
 		utils.forEach(util -> {
 			util.getMethods().forEach(method -> {
 				utilMethodsMapper.put(method.getDesc(), method);
@@ -100,13 +99,44 @@ public class AppiumTestGenerator {
 		});
 	}
 
-	public void setOutputDir(String outputDir) {
-		this.outputDir = outputDir;
+	public void addDesiredCapabilities(Map<String, Object> desiredCapabilities) {
+		for (Map.Entry<String, Object> entry : desiredCapabilities.entrySet()) {
+			String key = entry.getKey();
+			Object value = entry.getValue();
+
+			if (key.equals(MobileCapabilityType.PLATFORM_VERSION)) {
+				String version = (String) value;
+				version = version.replaceAll("[^\\.0123456789]", "");
+				value = version;
+			}
+
+			this.desiredCapabilities.put(entry.getKey(), value);
+		}
 	}
 
-	public void generateSetUpAndTearDownMethod() {
-		defaultMethodSpec.put("setUp", generateSetUpMethod());
-		defaultMethodSpec.put("tearDown", generateTearDownMethod());
+	public void addDriverProperties(Map<String, Object> driverProperties) {
+		for (Map.Entry<String, Object> entry : driverProperties.entrySet()) {
+			String key = entry.getKey();
+			Object value = entry.getValue();
+
+			this.driverProperties.put(key, value);
+		}
+	}
+
+	public void addFeatures(List<Feature> features) {
+		this.features.addAll(features);
+	}
+
+	public void generate() throws IOException {
+
+		generateUtilsClass();
+
+		generateTestClass();
+	}
+
+	public Builder generateDefaultTestMethod(String testMethodName) {
+		return MethodSpec.methodBuilder(testMethodName).addModifiers(Modifier.PUBLIC).returns(void.class)
+				.addAnnotation(Test.class);
 	}
 
 	public MethodSpec generateScenariosMethod(Scenario scenario) {
@@ -194,9 +224,9 @@ public class AppiumTestGenerator {
 		return methodBuilder.build();
 	}
 
-	private void appendClickCode(Builder methodBuilder, List<Object> params, String methodName) {
-		String element = (String) params.get(0);
-		methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).click();\n", driverName, By.class, methodName, element);
+	public void generateSetUpAndTearDownMethod() {
+		defaultMethodSpec.put("setUp", generateSetUpMethod());
+		defaultMethodSpec.put("tearDown", generateTearDownMethod());
 	}
 
 	public MethodSpec generateSetUpMethod() {
@@ -213,61 +243,49 @@ public class AppiumTestGenerator {
 		return methodBuilder.build();
 	}
 
-	private CodeBlock generateUserCode() {
-		CodeBlock.Builder builder = CodeBlock.builder();
+	public String getKuaiKuai() {
 
-		builder.beginControlFlow("if($L.getHasUser())", userRule);
-		builder.add("$L=$L.getUserName();\n", userNameField, userRule);
-		builder.add("$L=$L.getPid();\n", pidField, userRule);
-		builder.add("$L=$L.getPassword();\n", passwordField, userRule);
-		builder.endControlFlow();
+		String msg = "<pre>\n"
+				+ "               ░░░░░░░░░ ░░                                        ░░░░▒▒░░░░░     ░░░░\n"
+				+ "          ░ ░████▓▓▓▓▓▓▓▓▓███▓░░                                ░██████████████░██▓▓▒▓▓░\n"
+				+ "        ░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██▒                   ░ ░      ░███████████████████▓▓▓▓▓▓█\n"
+				+ "     ░▒█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██░░             ░███░    ░██████▓▓▓▓▓▓▓▓▓███████▓▓▓█▓▓▒░\n"
+				+ "    ▒█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█░   ░▒▓    ██████░    ███████▓▓▓▓▓▓▓▓▓▓████████████▓\n"
+				+ "  ░█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█▓  ▒▒▓▓   ███████░░░███████████████████████████░▓█\n"
+				+ " ░░█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█░       ░████████████████████████████████████░\n"
+				+ " ░░█▓▓▓▓▓▓▓▓▓██▓▒░▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓█▓▓░░▓▓▓▓▓█░       ██████████░░░▓█░██░░░░███████████████\n"
+				+ " ░█▓▓▓▓▓░░░░ ░░░▒▓██▓▓▓▓▓▓▓░░░░░ ░░▒▓██▓▓▓▓▓▓        ████████▒░░░▓░▒█░░░░░█▓░█████████████░\n"
+				+ " ░▓▓▓▓███████ ░████████▓▓████████ ░███████▓▓▓█░       ░███████▓░▒░░▒░░░░░▒█░░░██████████████░   ░▒█\n"
+				+ " ░█▓▓▓▓▓▓░░▓▓ ░▓▓░ ░▓▓▓█▓█▓▓▓ ░▓▓ ░▓▓  ▓▓▓█▓▓█▒        ░███████░░░░██░░░░░░░░▒█▒░░░█████████████████\n"
+				+ " █▓▓▓▓    ██  ██░ ░░▒▓▓▓▓░   ░██  █▓  ░░█▓▓▓▓▓       ░░░██████░░░▒█░▒░░░██░░░░▒░░░█████████████████\n"
+				+ " █▓▓▓▓██  ██  ██░ ░███▓▓▓███ ░██  █▓  ███▓▓▓█▓       ░░░░░▒░░░▓░░░▒▒▒░▒██░░░░░░▒▒█████████████████░\n"
+				+ " █▓▓▓▓░░   ░  ██░ ░░ ░▓▓█▒░  ░░▒  █▓░ ░  █▓▓█░       ░░░░░░  ███░░▒░▒▒▒░░░░░▓██████████████████▒\n"
+				+ " ▓█▓▓░▓███▓▓  ██▓█▓▓▓█▓▓█▓████▓▓  █▓█▓▓▓██▓▓█░          ░░░░░▒▒▒░░▒░░░░░░▒████████▒█████████░\n"
+				+ " ░█▓▓▓▓▓▓▓▓▓  ██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  █▓▓▓▓▓▓▓▓█▒             ░▓▓▓▓░░░░▒░░░░▒▒▓▓▓▓░░ ░░███▒░\n"
+				+ " ░█▓▓▓▓▓▓▓▓ ░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ░█▓▓▓▓▓▓▓▓█                  ░▒▒▒▓▒░░░▒▒▒▓▓▓░░░  ░░\n"
+				+ " █▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██                   ▒▒▒▓░▓▒▒▒▒▒▓░ ░░░░ ░░░░░\n"
+				+ " ░██▓▓▓▓▓▓▒░░▓░▓▒▓░▓░▓▓▓▓▒▓▓▒▓▓▓▓▓▓▓▓█▒                    ▓▒▒▒▒▓▒▒▒▒▒▒▓     ░░░░░\n"
+				+ "  ░░█▓▓▓▓▓░░░▓░▓▓░░▒░▓▓░▓▒▓░▒░▒▓▓▓▓██░                      ▓▓▓▓▓▓▓▓▓▓▓▓░\n"
+				+ "    ░░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█▓░                   ░░   ░▓▓▓▓▓ ▓▓▓▓▓▓░\n"
+				+ "        ▒██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██░                   ░▒▒▒▒▒▒▒▒▓▒░▓    ░░░░▒▓▒▒▒▒▒▒▒▒▓░\n"
+				+ "           ░░▓█████▓▓▓█████▒░                     ░▓▒▒▒▒▒▒▒▒▒▒▓▓▓░     ▒▓▓▓▓▒▒▒▒▒▒▒▒▓░░\n"
+				+ "</pre>\n";
+		return msg;
 
-		return builder.build();
 	}
 
-	private MethodSpec generateTearDownMethod() {
-		Builder methodBuilder = MethodSpec.methodBuilder("tearDown").addModifiers(Modifier.PUBLIC).returns(void.class)
-				.addAnnotation(After.class);
-
-		return methodBuilder.build();
+	public void setOutputDir(String outputDir) {
+		this.outputDir = outputDir;
 	}
 
-	public void generate() throws IOException {
-
-		generateUtilsClass();
-
-		generateTestClass();
-	}
-
-	private void generateTestClass() {
-
-		generateSetUpAndTearDownMethod();
-
-		for (Feature feature : features) {
-
-			String className = StringUtils.endsWith(feature.getName(), "Test") ? feature.getName()
-					: feature.getName() + "Test";
-
-			TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className).addModifiers(Modifier.PUBLIC);
-
-			addFieldForTest(classBuilder);
-
-			List<MethodSpec> methods = new ArrayList<>();
-			methods.add(defaultMethodSpec.get("setUp"));
-			methods.add(defaultMethodSpec.get("tearDown"));
-
-			classBuilder.addMethods(methods);
-
-			for (Scenario s : feature.getScenarios()) {
-				classBuilder.addMethod(generateScenariosMethod(s));
+	public void writeTo() {
+		javaFiles.forEach((javaFile) -> {
+			try {
+				javaFile.writeTo(new File(outputDir));
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-
-			TypeSpec typeSpec = classBuilder.build();
-
-			javaFiles.add(JavaFile.builder(packageName + "." + feature.getPackageName(), typeSpec)
-					.addStaticImport(org.junit.Assert.class, "*")
-					.build());
-		}
+		});
 	}
 
 	private void addFieldForTest(TypeSpec.Builder classBuilder) {
@@ -291,80 +309,15 @@ public class AppiumTestGenerator {
 		classBuilder.addField(TypeName.LONG, implicitlyWaitSecName, Modifier.PRIVATE);
 	}
 
-	private void generateUtilsClass() {
-
-		for (CommonUtilClass utilClass : utils) {
-
-			String className = utilClass.getName();
-			TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className).addModifiers(Modifier.PUBLIC);
-
-			for (CommonMethod method : utilClass.getMethods()) {
-				classBuilder.addMethod(generateUtilMethod(method));
-			}
-
-			TypeSpec typeSpec = classBuilder.addJavadoc(utilClass.getDesc() + "\n").build();
-
-			javaFiles.add(JavaFile
-					.builder(packageName + "." + defaultUtilPackage + "." + utilClass.getPackageName(), typeSpec)
-					.build());
-		}
-
-	}
-
-	/**
-	 * 
-	 * @param method
-	 * @return
-	 */
-	private MethodSpec generateUtilMethod(CommonMethod method) {
-
-		Builder methodBuilder = MethodSpec.methodBuilder(method.getName()).addModifiers(Modifier.PUBLIC)
-				.addModifiers(Modifier.STATIC).addParameter(IOSDriver.class, driverName)
-				.addParameter(String.class, userNameField).addParameter(String.class, passwordField)
-				.addParameter(String.class, pidField).addParameter(TypeName.LONG, implicitlyWaitSecName)
-				.returns(void.class).addJavadoc(method.getDesc() + "\n@param " + driverName
-						+ "\n@param userName\n@param password\n@param pid\n@return\n");
-
-		for (Step step : method.getSteps()) {
-			methodBuilder.addComment("$L $L $L ", step.getDesc(), step.getCommand().getType(),
-					step.getCommand().getParams());
-
-			String commandType = step.getCommand().getType();
-
-			List<Object> params = step.getCommand().getParams();
-
-			if ("ByName".equals(commandType) || "ByXPath".equals(commandType)) {
-
-				String methodName = StringUtils.lowerCase(commandType.substring(2));
-				if (params.isEmpty()) {
-					continue;
-				}
-				if (params.size() <= 1)
-					continue;
-
-				String action = (String) params.get(1);
-
-				if ("click".equals(action)) {
-					appendClickCode(methodBuilder, params, methodName);
-				} else if ("sendKeys".equals(action)) {
-					appendSendKeyCode(methodBuilder, params, methodName);
-				}
-			} else if (commandType.startsWith("TouchAction_")) {
-				appendTouchActionCode(methodBuilder, commandType);
-			} else if (commandType.startsWith("Waiting")) {
-				appendWaitingCode(methodBuilder, commandType, params);
-			} else if ("CheckAlert".equals(commandType)) {
-				appendCheckAlertCode(methodBuilder, commandType, params);
-			}
-		}
-
-		return methodBuilder.build();
-	}
-
 	private void appendCheckAlertCode(Builder methodBuilder, String commandType, List<Object> params) {
 		String elementName = String.valueOf(params.get(0));
 		methodBuilder.addCode("$T.presenceClick($L,2L,$S,$L );\n", CommandUtils.class, driverName, elementName,
 				implicitlyWaitSecName);
+	}
+
+	private void appendClickCode(Builder methodBuilder, List<Object> params, String methodName) {
+		String element = (String) params.get(0);
+		methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).click();\n", driverName, By.class, methodName, element);
 	}
 
 	private void appendSendKeyCode(Builder methodBuilder, List<Object> params, String methodName) {
@@ -429,37 +382,6 @@ public class AppiumTestGenerator {
 				seconds, InterruptedException.class);
 	}
 
-	public void writeTo() {
-		javaFiles.forEach((javaFile) -> {
-			try {
-				javaFile.writeTo(new File(outputDir));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		});
-	}
-
-	private CodeBlock generateDriver(String driverName, String variable, Map<String, Object> properties) {
-
-		CodeBlock.Builder builder = CodeBlock.builder();
-
-		String url = (String) properties.getOrDefault("appiumUrl", "http://127.0.0.1:4723/wd/hub");
-		int implicitlyWaitSec = (int) properties.get("implicitlyWait");
-
-		builder.add("$L= new $T<$T>(new $T(\"$L\"), $L);\n", driverName, IOSDriver.class, MobileElement.class,
-				URL.class, url, variable);
-
-		builder.add("$L= $L;\n", implicitlyWaitSecName, implicitlyWaitSec);
-
-		builder.add("$L.manage().timeouts().implicitlyWait($L ,$T.SECONDS);\n", driverName, implicitlyWaitSec,
-				TimeUnit.class);
-
-		builder.add("$L = $L.manage().window().getSize().getWidth();\n", widthField, driverName);
-		builder.add("$L = $L.manage().window().getSize().getHeight();\n", heightField, driverName);
-
-		return builder.build();
-	}
-
 	private CodeBlock generateDesiredCapabilities(String variable, Map<String, Object> preoperties) {
 
 		CodeBlock.Builder builder = CodeBlock.builder();
@@ -490,67 +412,143 @@ public class AppiumTestGenerator {
 		return builder.build();
 	}
 
-	public void addDesiredCapabilities(Map<String, Object> desiredCapabilities) {
-		for (Map.Entry<String, Object> entry : desiredCapabilities.entrySet()) {
-			String key = entry.getKey();
-			Object value = entry.getValue();
+	private CodeBlock generateDriver(String driverName, String variable, Map<String, Object> properties) {
 
-			if (key.equals(MobileCapabilityType.PLATFORM_VERSION)) {
-				String version = (String) value;
-				version = version.replaceAll("[^\\.0123456789]", "");
-				value = version;
+		CodeBlock.Builder builder = CodeBlock.builder();
+
+		String url = (String) properties.getOrDefault("appiumUrl", "http://127.0.0.1:4723/wd/hub");
+		int implicitlyWaitSec = (int) properties.get("implicitlyWait");
+
+		builder.add("$L= new $T<$T>(new $T(\"$L\"), $L);\n", driverName, IOSDriver.class, MobileElement.class,
+				URL.class, url, variable);
+
+		builder.add("$L= $L;\n", implicitlyWaitSecName, implicitlyWaitSec);
+
+		builder.add("$L.manage().timeouts().implicitlyWait($L ,$T.SECONDS);\n", driverName, implicitlyWaitSec,
+				TimeUnit.class);
+
+		builder.add("$L = $L.manage().window().getSize().getWidth();\n", widthField, driverName);
+		builder.add("$L = $L.manage().window().getSize().getHeight();\n", heightField, driverName);
+
+		return builder.build();
+	}
+
+	private MethodSpec generateTearDownMethod() {
+		Builder methodBuilder = MethodSpec.methodBuilder("tearDown").addModifiers(Modifier.PUBLIC).returns(void.class)
+				.addAnnotation(After.class);
+
+		return methodBuilder.build();
+	}
+
+	private void generateTestClass() {
+
+		generateSetUpAndTearDownMethod();
+
+		for (Feature feature : features) {
+
+			String className = StringUtils.endsWith(feature.getName(), "Test") ? feature.getName()
+					: feature.getName() + "Test";
+
+			TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className).addModifiers(Modifier.PUBLIC);
+
+			addFieldForTest(classBuilder);
+
+			List<MethodSpec> methods = new ArrayList<>();
+			methods.add(defaultMethodSpec.get("setUp"));
+			methods.add(defaultMethodSpec.get("tearDown"));
+
+			classBuilder.addMethods(methods);
+
+			for (Scenario s : feature.getScenarios()) {
+				classBuilder.addMethod(generateScenariosMethod(s));
 			}
 
-			this.desiredCapabilities.put(entry.getKey(), value);
+			TypeSpec typeSpec = classBuilder.build();
+
+			javaFiles.add(JavaFile.builder(packageName + "." + feature.getPackageName(), typeSpec)
+					.addStaticImport(org.junit.Assert.class, "*").build());
 		}
 	}
 
-	public void addDriverProperties(Map<String, Object> driverProperties) {
-		for (Map.Entry<String, Object> entry : driverProperties.entrySet()) {
-			String key = entry.getKey();
-			Object value = entry.getValue();
+	private CodeBlock generateUserCode() {
+		CodeBlock.Builder builder = CodeBlock.builder();
 
-			this.driverProperties.put(key, value);
+		builder.beginControlFlow("if($L.getHasUser())", userRule);
+		builder.add("$L=$L.getUserName();\n", userNameField, userRule);
+		builder.add("$L=$L.getPid();\n", pidField, userRule);
+		builder.add("$L=$L.getPassword();\n", passwordField, userRule);
+		builder.endControlFlow();
+
+		return builder.build();
+	}
+
+	/**
+	 * 
+	 * @param method
+	 * @return
+	 */
+	private MethodSpec generateUtilMethod(CommonMethod method) {
+
+		Builder methodBuilder = MethodSpec.methodBuilder(method.getName()).addModifiers(Modifier.PUBLIC)
+				.addModifiers(Modifier.STATIC).addParameter(IOSDriver.class, driverName)
+				.addParameter(String.class, userNameField).addParameter(String.class, passwordField)
+				.addParameter(String.class, pidField).addParameter(TypeName.LONG, implicitlyWaitSecName)
+				.returns(void.class).addJavadoc(method.getDesc() + "\n@param " + driverName
+						+ "\n@param userName\n@param password\n@param pid\n@return\n");
+
+		for (Step step : method.getSteps()) {
+			methodBuilder.addComment("$L $L $L ", step.getDesc(), step.getCommand().getType(),
+					step.getCommand().getParams());
+
+			String commandType = step.getCommand().getType();
+
+			List<Object> params = step.getCommand().getParams();
+
+			if ("ByName".equals(commandType) || "ByXPath".equals(commandType)) {
+
+				String methodName = StringUtils.lowerCase(commandType.substring(2));
+				if (params.isEmpty()) {
+					continue;
+				}
+				if (params.size() <= 1)
+					continue;
+
+				String action = (String) params.get(1);
+
+				if ("click".equals(action)) {
+					appendClickCode(methodBuilder, params, methodName);
+				} else if ("sendKeys".equals(action)) {
+					appendSendKeyCode(methodBuilder, params, methodName);
+				}
+			} else if (commandType.startsWith("TouchAction_")) {
+				appendTouchActionCode(methodBuilder, commandType);
+			} else if (commandType.startsWith("Waiting")) {
+				appendWaitingCode(methodBuilder, commandType, params);
+			} else if ("CheckAlert".equals(commandType)) {
+				appendCheckAlertCode(methodBuilder, commandType, params);
+			}
 		}
+
+		return methodBuilder.build();
 	}
 
-	public void addFeatures(List<Feature> features) {
-		this.features.addAll(features);
-	}
+	private void generateUtilsClass() {
 
-	public Builder generateDefaultTestMethod(String testMethodName) {
-		return MethodSpec.methodBuilder(testMethodName).addModifiers(Modifier.PUBLIC).returns(void.class)
-				.addAnnotation(Test.class);
-	}
+		for (CommonUtilClass utilClass : utils) {
 
-	public String getKuaiKuai() {
+			String className = utilClass.getName();
+			TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className).addModifiers(Modifier.PUBLIC);
 
-		String msg = "<pre>\n"
-				+ "               ░░░░░░░░░ ░░                                        ░░░░▒▒░░░░░     ░░░░\n"
-				+ "          ░ ░████▓▓▓▓▓▓▓▓▓███▓░░                                ░██████████████░██▓▓▒▓▓░\n"
-				+ "        ░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██▒                   ░ ░      ░███████████████████▓▓▓▓▓▓█\n"
-				+ "     ░▒█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██░░             ░███░    ░██████▓▓▓▓▓▓▓▓▓███████▓▓▓█▓▓▒░\n"
-				+ "    ▒█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█░   ░▒▓    ██████░    ███████▓▓▓▓▓▓▓▓▓▓████████████▓\n"
-				+ "  ░█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█▓  ▒▒▓▓   ███████░░░███████████████████████████░▓█\n"
-				+ " ░░█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█░       ░████████████████████████████████████░\n"
-				+ " ░░█▓▓▓▓▓▓▓▓▓██▓▒░▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓█▓▓░░▓▓▓▓▓█░       ██████████░░░▓█░██░░░░███████████████\n"
-				+ " ░█▓▓▓▓▓░░░░ ░░░▒▓██▓▓▓▓▓▓▓░░░░░ ░░▒▓██▓▓▓▓▓▓        ████████▒░░░▓░▒█░░░░░█▓░█████████████░\n"
-				+ " ░▓▓▓▓███████ ░████████▓▓████████ ░███████▓▓▓█░       ░███████▓░▒░░▒░░░░░▒█░░░██████████████░   ░▒█\n"
-				+ " ░█▓▓▓▓▓▓░░▓▓ ░▓▓░ ░▓▓▓█▓█▓▓▓ ░▓▓ ░▓▓  ▓▓▓█▓▓█▒        ░███████░░░░██░░░░░░░░▒█▒░░░█████████████████\n"
-				+ " █▓▓▓▓    ██  ██░ ░░▒▓▓▓▓░   ░██  █▓  ░░█▓▓▓▓▓       ░░░██████░░░▒█░▒░░░██░░░░▒░░░█████████████████\n"
-				+ " █▓▓▓▓██  ██  ██░ ░███▓▓▓███ ░██  █▓  ███▓▓▓█▓       ░░░░░▒░░░▓░░░▒▒▒░▒██░░░░░░▒▒█████████████████░\n"
-				+ " █▓▓▓▓░░   ░  ██░ ░░ ░▓▓█▒░  ░░▒  █▓░ ░  █▓▓█░       ░░░░░░  ███░░▒░▒▒▒░░░░░▓██████████████████▒\n"
-				+ " ▓█▓▓░▓███▓▓  ██▓█▓▓▓█▓▓█▓████▓▓  █▓█▓▓▓██▓▓█░          ░░░░░▒▒▒░░▒░░░░░░▒████████▒█████████░\n"
-				+ " ░█▓▓▓▓▓▓▓▓▓  ██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  █▓▓▓▓▓▓▓▓█▒             ░▓▓▓▓░░░░▒░░░░▒▒▓▓▓▓░░ ░░███▒░\n"
-				+ " ░█▓▓▓▓▓▓▓▓ ░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ░█▓▓▓▓▓▓▓▓█                  ░▒▒▒▓▒░░░▒▒▒▓▓▓░░░  ░░\n"
-				+ " █▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██                   ▒▒▒▓░▓▒▒▒▒▒▓░ ░░░░ ░░░░░\n"
-				+ " ░██▓▓▓▓▓▓▒░░▓░▓▒▓░▓░▓▓▓▓▒▓▓▒▓▓▓▓▓▓▓▓█▒                    ▓▒▒▒▒▓▒▒▒▒▒▒▓     ░░░░░\n"
-				+ "  ░░█▓▓▓▓▓░░░▓░▓▓░░▒░▓▓░▓▒▓░▒░▒▓▓▓▓██░                      ▓▓▓▓▓▓▓▓▓▓▓▓░\n"
-				+ "    ░░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█▓░                   ░░   ░▓▓▓▓▓ ▓▓▓▓▓▓░\n"
-				+ "        ▒██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██░                   ░▒▒▒▒▒▒▒▒▓▒░▓    ░░░░▒▓▒▒▒▒▒▒▒▒▓░\n"
-				+ "           ░░▓█████▓▓▓█████▒░                     ░▓▒▒▒▒▒▒▒▒▒▒▓▓▓░     ▒▓▓▓▓▒▒▒▒▒▒▒▒▓░░\n"
-				+ "</pre>\n";
-		return msg;
+			for (CommonMethod method : utilClass.getMethods()) {
+				classBuilder.addMethod(generateUtilMethod(method));
+			}
+
+			TypeSpec typeSpec = classBuilder.addJavadoc(utilClass.getDesc() + "\n").build();
+
+			javaFiles.add(JavaFile
+					.builder(packageName + "." + defaultUtilPackage + "." + utilClass.getPackageName(), typeSpec)
+					.build());
+		}
 
 	}
 }

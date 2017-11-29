@@ -34,5 +34,10 @@ public abstract class AbstractExcelSheetMapper<T> implements ExcelSheetMapper<T>
 
 	abstract protected HandlerExecution<T> defaultHandle();
 
+	/**
+	 * Excel中裝置資訊Sheet，判斷Type
+	 * 
+	 * @return
+	 */
 	abstract protected String getType();
 }

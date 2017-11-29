@@ -19,7 +19,7 @@ public class AppiumTestGeneratorTest {
 		String outDir = System.getProperty("outdir");
 
 		if (StringUtils.isBlank(outDir)) {
-			outDir = "/Users/javiosyc/git/sample-code/sample-code/examples/java/junit/src/test/java";
+			outDir = "/Users/cyndi/git/appium-script/test/src/test/java";
 		}
 
 		ExcelReader reader = new ExcelReader(path);

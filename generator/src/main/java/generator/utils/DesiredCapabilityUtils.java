@@ -1,10 +1,8 @@
 package generator.utils;
 
 import java.lang.reflect.Field;
-
 import java.util.Arrays;
 import java.util.HashSet;
-
 import java.util.Set;
 
 import io.appium.java_client.remote.IOSMobileCapabilityType;
@@ -23,6 +21,24 @@ public class DesiredCapabilityUtils {
 		}
 	}
 
+	/**
+	 * 檢核是否為DesiredCapabilities
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public static boolean isIOSMobileCapability(String name) {
+		return iOSMobileCapabilities.contains(name);
+	}
+
+	public static void show() {
+
+		for (String name : iOSMobileCapabilities) {
+			System.out.println(name);
+		}
+
+	}
+
 	private static void getFields(Class clazz) throws ClassNotFoundException {
 		Field[] fields = clazz.getFields();
 
@@ -38,17 +54,5 @@ public class DesiredCapabilityUtils {
 			}
 
 		});
-	}
-
-	public static boolean isIOSMobileCapability(String name) {
-		return iOSMobileCapabilities.contains(name);
-	}
-
-	public static void show() {
-
-		for (String name : iOSMobileCapabilities) {
-			System.out.println(name);
-		}
-
 	}
 }

@@ -21,18 +21,32 @@ import models.Step;
 
 public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 
-	private final XSSFSheet sheet;
-
-	private CommonUtilClass utilClass;
+	private static final String METHOD_COMMENT_TAG = "MethodComment";
 
 	private static final String METHOD_NAME_TAG = "MethodName";
-	private static final String METHOD_COMMENT_TAG = "MethodComment";
+
 	private static final String METHOD_NOREST_TAG = "noReset";
+	private final XSSFSheet sheet;
+	private CommonUtilClass utilClass;
 
 	public CommonStepHandler(XSSFSheet sheet) {
 		this.sheet = sheet;
 		utilClass = new CommonUtilClass();
 		utilClass.setMethods(new ArrayList<>());
+	}
+
+	@Override
+	public void addRecordTo(Map<String, Object> store) {
+		List<CommonUtilClass> records = (List<CommonUtilClass>) store.get(getName());
+
+		if (records == null) {
+			records = new ArrayList<>();
+			records.add(getData());
+			store.put(getName(), records);
+		} else {
+			records.add(getData());
+		}
+
 	}
 
 	@Override
@@ -113,30 +127,9 @@ public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 		}
 	}
 
-	private int populateClassInfo(XSSFSheet sheet) {
-		String className = sheet.getRow(1).getCell(1).getStringCellValue();
-		String desc = sheet.getRow(2).getCell(1).getStringCellValue();
-		String packageName = sheet.getRow(3).getCell(1).getStringCellValue();
-
-		utilClass.setName(className);
-		utilClass.setDesc(desc);
-		utilClass.setPackageName(packageName);
-
-		return 4;
-	}
-
 	@Override
-	public String getName() {
-		return "utils";
-	}
-
-	private String getStringCellValue(Row row, int i) {
-		Cell cell = row.getCell(i);
-		if (cell == null) {
-			return "";
-		}
-
-		return cell.getStringCellValue();
+	public CommonUtilClass getData() {
+		return utilClass;
 	}
 
 	@Override
@@ -148,22 +141,29 @@ public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 	}
 
 	@Override
-	public void addRecordTo(Map<String, Object> store) {
-		List<CommonUtilClass> records = (List<CommonUtilClass>) store.get(getName());
-
-		if (records == null) {
-			records = new ArrayList<>();
-			records.add(getData());
-			store.put(getName(), records);
-		} else {
-			records.add(getData());
-		}
-
+	public String getName() {
+		return "commonStep";
 	}
 
-	@Override
-	public CommonUtilClass getData() {
-		return utilClass;
+	private String getStringCellValue(Row row, int i) {
+		Cell cell = row.getCell(i);
+		if (cell == null) {
+			return "";
+		}
+
+		return cell.getStringCellValue();
+	}
+
+	private int populateClassInfo(XSSFSheet sheet) {
+		String className = sheet.getRow(1).getCell(1).getStringCellValue();
+		String desc = sheet.getRow(2).getCell(1).getStringCellValue();
+		String packageName = sheet.getRow(3).getCell(1).getStringCellValue();
+
+		utilClass.setName(className);
+		utilClass.setDesc(desc);
+		utilClass.setPackageName(packageName);
+
+		return 4;
 	}
 
 }

@@ -49,9 +49,6 @@ public class AccountHandler implements HandlerExecution<List<AccountInfo>> {
 		}
 	}
 
-	/**
-	 * 定義讀取規則，
-	 */
 	@Override
 	public void generate() {
 
