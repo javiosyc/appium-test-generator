@@ -19,6 +19,12 @@ import models.CommonMethod;
 import models.CommonUtilClass;
 import models.Step;
 
+/**
+ * 讀取Excel登入情境Sheet轉成CommonUtilClass
+ * 
+ * @author Cyndi
+ *
+ */
 public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 
 	private static final String METHOD_COMMENT_TAG = "MethodComment";
@@ -64,6 +70,7 @@ public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 
 			String firstCell = getStringCellValue(row, 0);
 
+			// 檢查第一欄名稱是否等於METHOD_NAME_TAG，若有則Create一個新的Method
 			if (METHOD_NAME_TAG.equals(firstCell)) {
 				String name = row.getCell(1).getStringCellValue();
 				method = new CommonMethod();
@@ -89,7 +96,24 @@ public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 						if (METHOD_NOREST_TAG.equals(column)) {
 							if (cellIterator.hasNext()) {
 								Cell noResetCell = cellIterator.next();
-								method.setNoReset(noResetCell.getBooleanCellValue());
+
+								CellType cellType = row.getCell(1).getCellTypeEnum();
+
+								boolean noReset = false;
+								switch (cellType) {
+								case BOOLEAN:
+									noReset = noResetCell.getBooleanCellValue();
+									break;
+
+								case STRING:
+									String cellValue = noResetCell.getStringCellValue();
+									noReset = Boolean.valueOf(cellValue);
+									break;
+								default:
+									break;
+								}
+
+								method.setNoReset(noReset);
 							}
 						}
 					}
@@ -105,6 +129,7 @@ public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 				Command command = new Command();
 				command.setType(commandType);
 
+				// 將第三欄開始的內容都當為Command參數
 				for (int cn = 2; cn < row.getLastCellNum(); cn++) {
 					Cell cell = row.getCell(cn);
 					CellType cellType = cell.getCellTypeEnum();
@@ -145,6 +170,13 @@ public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 		return "commonStep";
 	}
 
+	/**
+	 * 取第i格欄位(Cell)的值
+	 * 
+	 * @param row
+	 * @param i
+	 * @return
+	 */
 	private String getStringCellValue(Row row, int i) {
 		Cell cell = row.getCell(i);
 		if (cell == null) {

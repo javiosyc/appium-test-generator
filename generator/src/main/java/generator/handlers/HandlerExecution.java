@@ -4,6 +4,11 @@ import java.util.Map;
 
 public interface HandlerExecution<T> {
 
+	/**
+	 * 將讀取資料儲存至Map
+	 * 
+	 * @param store
+	 */
 	public void addRecordTo(Map<String, Object> store);
 
 	/**

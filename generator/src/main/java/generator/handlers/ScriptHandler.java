@@ -2,8 +2,6 @@ package generator.handlers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -24,19 +22,33 @@ import models.Step;
 
 public class ScriptHandler implements HandlerExecution<Feature> {
 
-	private final XSSFSheet sheet;
-
-	private Feature feature;
-
 	private static final List<String> gherkins = Arrays.asList("Given", "And", "When", "Then");
 
-	private static final String SCENARIO_NAME_TAG = "MethodName";
 	private static final String SCENARIO_COMMENT_TAG = "MethodComment";
+
+	private static final String SCENARIO_NAME_TAG = "MethodName";
+
+	private Feature feature;
+	private final XSSFSheet sheet;
 
 	public ScriptHandler(XSSFSheet sheet) {
 		this.sheet = sheet;
 		feature = new Feature();
 		feature.setScenarios(new ArrayList<>());
+	}
+
+	@Override
+	public void addRecordTo(Map<String, Object> store) {
+
+		List<Feature> records = (List<Feature>) store.get(getName());
+
+		if (records == null) {
+			records = new ArrayList<>();
+			records.add(getData());
+			store.put(getName(), records);
+		} else {
+			records.add(getData());
+		}
 	}
 
 	@Override
@@ -118,16 +130,17 @@ public class ScriptHandler implements HandlerExecution<Feature> {
 
 	}
 
-	private int populateClassInfo(XSSFSheet sheet) {
-		String className = sheet.getRow(1).getCell(1).getStringCellValue();
-		String desc = sheet.getRow(2).getCell(1).getStringCellValue();
-		String packageName = sheet.getRow(3).getCell(1).getStringCellValue();
+	@Override
+	public Feature getData() {
+		return feature;
+	}
 
-		feature.setName(className);
-		feature.setDesc(desc);
-		feature.setPackageName(packageName);
+	@Override
+	public List<Feature> getDataFrom(Map<String, Object> data) {
 
-		return 4;
+		List<Feature> records = (List<Feature>) data.get(getName());
+
+		return CollectionUtils.isNotEmpty(records) ? new ArrayList<>() : records;
 	}
 
 	@Override
@@ -144,30 +157,15 @@ public class ScriptHandler implements HandlerExecution<Feature> {
 		return cell.getStringCellValue();
 	}
 
-	@Override
-	public List<Feature> getDataFrom(Map<String, Object> data) {
+	private int populateClassInfo(XSSFSheet sheet) {
+		String className = sheet.getRow(1).getCell(1).getStringCellValue();
+		String desc = sheet.getRow(2).getCell(1).getStringCellValue();
+		String packageName = sheet.getRow(3).getCell(1).getStringCellValue();
 
-		List<Feature> records = (List<Feature>) data.get(getName());
+		feature.setName(className);
+		feature.setDesc(desc);
+		feature.setPackageName(packageName);
 
-		return CollectionUtils.isNotEmpty(records) ? new ArrayList<>() : records;
-	}
-
-	@Override
-	public void addRecordTo(Map<String, Object> store) {
-
-		List<Feature> records = (List<Feature>) store.get(getName());
-
-		if (records == null) {
-			records = new ArrayList<>();
-			records.add(getData());
-			store.put(getName(), records);
-		} else {
-			records.add(getData());
-		}
-	}
-
-	@Override
-	public Feature getData() {
-		return feature;
+		return 4;
 	}
 }
