@@ -14,13 +14,15 @@ import models.AccountInfo;
  */
 public class AccountMapper extends AbstractExcelSheetMapper<List<AccountInfo>> {
 
+	public static final String TYPE = "data";
+
 	@Override
 	protected HandlerExecution<List<AccountInfo>> defaultHandle() {
-		return new AccountHandler(sheet);
+		return new AccountHandler(sheet, getType());
 	}
 
 	@Override
 	protected String getType() {
-		return "data";
+		return TYPE;
 	}
 }

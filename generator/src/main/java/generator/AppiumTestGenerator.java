@@ -34,6 +34,10 @@ import generator.annotation.NoResetSetting;
 import generator.annotation.NoResetSettingRule;
 import generator.annotation.TestingAccount;
 import generator.annotation.UserLoginTestRule;
+import generator.mappers.AccountMapper;
+import generator.mappers.CommonStepMapper;
+import generator.mappers.ScriptMapper;
+import generator.mappers.SettingMapper;
 import generator.utils.CommandUtils;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.TouchAction;
@@ -81,17 +85,19 @@ public class AppiumTestGenerator {
 
 		Map<String, Object> data = reader.getData();
 
-		features = (List<Feature>) data.get("script");
-		desiredCapabilities = ((Map<String, Map<String, Object>>) data.get("settings")).get("desiredCapabilities");
-		driverProperties = ((Map<String, Map<String, Object>>) data.get("settings")).get("driverProperties");
+		features = (List<Feature>) data.get(ScriptMapper.TYPE);
 
-		List<AccountInfo> accounts = (List<AccountInfo>) data.get("account");
+		desiredCapabilities = ((Map<String, Map<String, Object>>) data.get(SettingMapper.TYPE))
+				.get("desiredCapabilities");
+		driverProperties = ((Map<String, Map<String, Object>>) data.get(SettingMapper.TYPE)).get("driverProperties");
+
+		List<AccountInfo> accounts = (List<AccountInfo>) data.get(AccountMapper.TYPE);
 		accountInfos = new HashMap<>();
 		for (AccountInfo acc : accounts) {
 			accountInfos.put(acc.getType(), acc);
 		}
 
-		utils = (List<CommonUtilClass>) data.get("commonStep");
+		utils = (List<CommonUtilClass>) data.get(CommonStepMapper.TYPE);
 		utils.forEach(util -> {
 			util.getMethods().forEach(method -> {
 				utilMethodsMapper.put(method.getDesc(), method);

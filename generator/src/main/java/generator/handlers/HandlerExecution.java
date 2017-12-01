@@ -18,7 +18,5 @@ public interface HandlerExecution<T> {
 
 	public T getData();
 
-	public Object getDataFrom(Map<String, Object> store);
-
-	public String getName();
+	public String getTypeName();
 }

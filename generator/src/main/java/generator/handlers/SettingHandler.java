@@ -2,7 +2,6 @@ package generator.handlers;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -38,8 +37,11 @@ public class SettingHandler implements HandlerExecution<Map<String, Map<String, 
 
 	private final XSSFSheet sheet;
 
-	public SettingHandler(XSSFSheet sheet) {
+	private String typeName;
+
+	public SettingHandler(XSSFSheet sheet, String typeName) {
 		this.sheet = sheet;
+		this.typeName = typeName;
 		mapper = getCapabilityNameMapper();
 
 		properties.put(DESIRED_CAPABILITIES, desiredCapabilities);
@@ -49,10 +51,10 @@ public class SettingHandler implements HandlerExecution<Map<String, Map<String, 
 	@Override
 	public void addRecordTo(Map<String, Object> store) {
 
-		Map<String, Map<String, Object>> records = (Map<String, Map<String, Object>>) store.get(getName());
+		Map<String, Map<String, Object>> records = (Map<String, Map<String, Object>>) store.get(getTypeName());
 
 		if (records == null) {
-			store.put(getName(), properties);
+			store.put(getTypeName(), properties);
 
 		} else {
 
@@ -151,14 +153,8 @@ public class SettingHandler implements HandlerExecution<Map<String, Map<String, 
 	}
 
 	@Override
-	public List<Map<String, Map<String, Object>>> getDataFrom(Map<String, Object> store) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getName() {
-		return "settings";
+	public String getTypeName() {
+		return typeName;
 	}
 
 	/**

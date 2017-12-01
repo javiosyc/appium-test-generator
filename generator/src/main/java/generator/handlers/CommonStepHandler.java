@@ -5,7 +5,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -26,29 +25,31 @@ import models.Step;
  *
  */
 public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
-
 	private static final String METHOD_COMMENT_TAG = "MethodComment";
 
 	private static final String METHOD_NAME_TAG = "MethodName";
 
 	private static final String METHOD_NOREST_TAG = "noReset";
+
 	private final XSSFSheet sheet;
+	private String typeName;
 	private CommonUtilClass utilClass;
 
-	public CommonStepHandler(XSSFSheet sheet) {
+	public CommonStepHandler(XSSFSheet sheet, String typeName) {
 		this.sheet = sheet;
+		this.typeName = typeName;
 		utilClass = new CommonUtilClass();
 		utilClass.setMethods(new ArrayList<>());
 	}
 
 	@Override
 	public void addRecordTo(Map<String, Object> store) {
-		List<CommonUtilClass> records = (List<CommonUtilClass>) store.get(getName());
+		List<CommonUtilClass> records = (List<CommonUtilClass>) store.get(getTypeName());
 
 		if (records == null) {
 			records = new ArrayList<>();
 			records.add(getData());
-			store.put(getName(), records);
+			store.put(getTypeName(), records);
 		} else {
 			records.add(getData());
 		}
@@ -97,7 +98,7 @@ public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 							if (cellIterator.hasNext()) {
 								Cell noResetCell = cellIterator.next();
 
-								CellType cellType = row.getCell(1).getCellTypeEnum();
+								CellType cellType = noResetCell.getCellTypeEnum();
 
 								boolean noReset = false;
 								switch (cellType) {
@@ -158,16 +159,8 @@ public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 	}
 
 	@Override
-	public List<CommonMethod> getDataFrom(Map<String, Object> store) {
-
-		List<CommonMethod> records = (List<CommonMethod>) store.get(getName());
-
-		return CollectionUtils.isNotEmpty(records) ? new ArrayList<>() : records;
-	}
-
-	@Override
-	public String getName() {
-		return "commonStep";
+	public String getTypeName() {
+		return typeName;
 	}
 
 	/**

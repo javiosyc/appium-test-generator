@@ -12,13 +12,15 @@ import models.CommonUtilClass;
  */
 public class CommonStepMapper extends AbstractExcelSheetMapper<CommonUtilClass> {
 
+	public static final String TYPE = "commonStep";
+
 	@Override
 	protected HandlerExecution<CommonUtilClass> defaultHandle() {
-		return new CommonStepHandler(sheet);
+		return new CommonStepHandler(sheet, getType());
 	}
 
 	@Override
 	protected String getType() {
-		return "commonStep";
+		return TYPE;
 	}
 }

@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -31,8 +30,11 @@ public class ScriptHandler implements HandlerExecution<Feature> {
 	private Feature feature;
 	private final XSSFSheet sheet;
 
-	public ScriptHandler(XSSFSheet sheet) {
+	private String typeName;
+
+	public ScriptHandler(XSSFSheet sheet, String typeName) {
 		this.sheet = sheet;
+		this.typeName = typeName;
 		feature = new Feature();
 		feature.setScenarios(new ArrayList<>());
 	}
@@ -40,12 +42,12 @@ public class ScriptHandler implements HandlerExecution<Feature> {
 	@Override
 	public void addRecordTo(Map<String, Object> store) {
 
-		List<Feature> records = (List<Feature>) store.get(getName());
+		List<Feature> records = (List<Feature>) store.get(getTypeName());
 
 		if (records == null) {
 			records = new ArrayList<>();
 			records.add(getData());
-			store.put(getName(), records);
+			store.put(getTypeName(), records);
 		} else {
 			records.add(getData());
 		}
@@ -136,16 +138,8 @@ public class ScriptHandler implements HandlerExecution<Feature> {
 	}
 
 	@Override
-	public List<Feature> getDataFrom(Map<String, Object> data) {
-
-		List<Feature> records = (List<Feature>) data.get(getName());
-
-		return CollectionUtils.isNotEmpty(records) ? new ArrayList<>() : records;
-	}
-
-	@Override
-	public String getName() {
-		return "script";
+	public String getTypeName() {
+		return typeName;
 	}
 
 	private String getStringCellValue(Row row, int i) {

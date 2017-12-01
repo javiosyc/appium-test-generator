@@ -1,7 +1,6 @@
 package generator.handlers;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -26,24 +25,25 @@ public class AccountHandler implements HandlerExecution<List<AccountInfo>> {
 
 	private List<AccountInfo> accounts = new ArrayList<>();
 
-	private Map<String, Map<String, Object>> properties = new HashMap<>();
-
 	private final XSSFSheet sheet;
 
-	public AccountHandler(XSSFSheet sheet) {
+	private String typeName;
+
+	public AccountHandler(XSSFSheet sheet, String typeName) {
 		this.sheet = sheet;
+		this.typeName = typeName;
 	}
 
 	@Override
 	public void addRecordTo(Map<String, Object> store) {
 
-		List<AccountInfo> records = (List<AccountInfo>) store.get(getName());
+		List<AccountInfo> records = (List<AccountInfo>) store.get(getTypeName());
 
 		if (records == null) {
 			records = new ArrayList<>();
 			records.addAll(accounts);
 
-			store.put(getName(), records);
+			store.put(getTypeName(), records);
 		} else {
 			records.addAll(accounts);
 		}
@@ -84,14 +84,8 @@ public class AccountHandler implements HandlerExecution<List<AccountInfo>> {
 	}
 
 	@Override
-	public List<AccountInfo> getDataFrom(Map<String, Object> store) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getName() {
-		return "account";
+	public String getTypeName() {
+		return typeName;
 	}
 
 	/**

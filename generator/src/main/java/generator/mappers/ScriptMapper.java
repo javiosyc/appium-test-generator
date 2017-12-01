@@ -11,14 +11,15 @@ import models.Feature;
  *
  */
 public class ScriptMapper extends AbstractExcelSheetMapper<Feature> {
+	public static final String TYPE = "script";
 
 	@Override
 	protected HandlerExecution<Feature> defaultHandle() {
-		return new ScriptHandler(sheet);
+		return new ScriptHandler(sheet, getType());
 	}
 
 	@Override
 	protected String getType() {
-		return "script";
+		return TYPE;
 	}
 }

@@ -13,13 +13,15 @@ import generator.handlers.SettingHandler;
  */
 public class SettingMapper extends AbstractExcelSheetMapper<Map<String, Map<String, Object>>> {
 
+	public static final String TYPE = "settings";
+
 	@Override
 	protected HandlerExecution<Map<String, Map<String, Object>>> defaultHandle() {
-		return new SettingHandler(sheet);
+		return new SettingHandler(sheet, getType());
 	}
 
 	@Override
 	protected String getType() {
-		return "settings";
+		return TYPE;
 	}
 }
