@@ -1,10 +1,10 @@
-package generator.annotation;
+package generator.test.rules;
 
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-import junit.framework.Test;
+import generator.test.annotation.TestingAccount;
 
 public class UserLoginTestRule implements TestRule {
 

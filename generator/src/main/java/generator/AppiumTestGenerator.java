@@ -27,17 +27,19 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.MethodSpec.Builder;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
-import generator.annotation.NoResetSetting;
-import generator.annotation.NoResetSettingRule;
-import generator.annotation.TestingAccount;
-import generator.annotation.UserLoginTestRule;
 import generator.mappers.AccountMapper;
 import generator.mappers.CommonStepMapper;
 import generator.mappers.ScriptMapper;
 import generator.mappers.SettingMapper;
+import generator.test.annotation.NoResetSetting;
+import generator.test.annotation.TestingAccount;
+import generator.test.rules.ExceptionRule;
+import generator.test.rules.NoResetSettingRule;
+import generator.test.rules.UserLoginTestRule;
 import generator.utils.CommandUtils;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.TouchAction;
@@ -52,6 +54,7 @@ import models.Step;
 
 public class AppiumTestGenerator {
 
+	private static final String EXCEPTION_RULE = "exceptionRule";
 	private Map<String, AccountInfo> accountInfos;
 	private Map<String, MethodSpec> defaultMethodSpec = new HashMap<>();
 
@@ -246,7 +249,15 @@ public class AppiumTestGenerator {
 
 		methodBuilder.addCode(generateUserCode());
 
+		methodBuilder.addCode(generateSetExceptionRule());
+
 		return methodBuilder.build();
+	}
+
+	private CodeBlock generateSetExceptionRule() {
+		CodeBlock.Builder builder = CodeBlock.builder();
+		builder.add("$L.setDriver($L);\n", EXCEPTION_RULE, driverName);
+		return builder.build();
 	}
 
 	public String getKuaiKuai() {
@@ -295,7 +306,14 @@ public class AppiumTestGenerator {
 	}
 
 	private void addFieldForTest(TypeSpec.Builder classBuilder) {
-		classBuilder.addField(IOSDriver.class, driverName, Modifier.PRIVATE);
+
+		TypeName driverType = ParameterizedTypeName.get(IOSDriver.class, MobileElement.class);
+		FieldSpec driverNameSpec = FieldSpec.builder(driverType, driverName, Modifier.PRIVATE).build();
+		classBuilder.addField(driverNameSpec);
+
+		FieldSpec exceptionfieldSpec = FieldSpec.builder(ExceptionRule.class, EXCEPTION_RULE).addAnnotation(Rule.class)
+				.addModifiers(Modifier.PUBLIC).initializer("new $T()", ExceptionRule.class).build();
+		classBuilder.addField(exceptionfieldSpec);
 
 		FieldSpec fieldSpec = FieldSpec.builder(NoResetSettingRule.class, "rule").addAnnotation(Rule.class)
 				.addModifiers(Modifier.PUBLIC).initializer("new $T()", NoResetSettingRule.class).build();
