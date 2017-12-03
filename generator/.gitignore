@@ -6,3 +6,4 @@
 /data/
 /*.app/
 /**/*.DS_Store
+/gen/

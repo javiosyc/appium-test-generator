@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
@@ -14,6 +15,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 import com.google.common.collect.Iterators;
 
+import generator.utils.ExcelUtils;
 import models.Command;
 import models.Feature;
 import models.Scenario;
@@ -96,16 +98,11 @@ public class ScriptHandler implements HandlerExecution<Feature> {
 
 					for (int cn = 3; cn < row.getLastCellNum(); cn++) {
 						Cell cell = row.getCell(cn);
-						CellType cellType = cell.getCellTypeEnum();
-						switch (cellType) {
-						case STRING:
-							command.addParam(row.getCell(cn).getStringCellValue());
-							break;
-						case NUMERIC:
-							command.addParam(row.getCell(cn).getNumericCellValue());
-							break;
-						default:
-							break;
+
+						Optional<Object> value = ExcelUtils.getCellValue(cell);
+
+						if (value.isPresent()) {
+							command.addParam(value.get());
 						}
 					}
 

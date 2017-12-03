@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
@@ -13,6 +14,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 import com.google.common.collect.Iterators;
 
+import generator.utils.ExcelUtils;
 import models.Command;
 import models.CommonMethod;
 import models.CommonUtilClass;
@@ -98,23 +100,12 @@ public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 							if (cellIterator.hasNext()) {
 								Cell noResetCell = cellIterator.next();
 
-								CellType cellType = noResetCell.getCellTypeEnum();
-
-								boolean noReset = false;
-								switch (cellType) {
-								case BOOLEAN:
-									noReset = noResetCell.getBooleanCellValue();
-									break;
-
-								case STRING:
-									String cellValue = noResetCell.getStringCellValue();
-									noReset = Boolean.valueOf(cellValue);
-									break;
-								default:
-									break;
+								Optional<Boolean> noReset = ExcelUtils.getCellValueToBoolean(noResetCell);
+								if (noReset.isPresent()) {
+									method.setNoReset(noReset.get());
+								} else {
+									method.setNoReset(false);
 								}
-
-								method.setNoReset(noReset);
 							}
 						}
 					}
@@ -133,16 +124,11 @@ public class CommonStepHandler implements HandlerExecution<CommonUtilClass> {
 				// 將第三欄開始的內容都當為Command參數
 				for (int cn = 2; cn < row.getLastCellNum(); cn++) {
 					Cell cell = row.getCell(cn);
-					CellType cellType = cell.getCellTypeEnum();
-					switch (cellType) {
-					case STRING:
-						command.addParam(row.getCell(cn).getStringCellValue());
-						break;
-					case NUMERIC:
-						command.addParam(row.getCell(cn).getNumericCellValue());
-						break;
-					default:
-						break;
+
+					Optional<Object> value = ExcelUtils.getCellValue(cell);
+
+					if (value.isPresent()) {
+						command.addParam(value.get());
 					}
 				}
 				step.setCommand(command);

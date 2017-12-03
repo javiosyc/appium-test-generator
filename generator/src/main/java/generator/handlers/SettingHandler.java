@@ -3,16 +3,17 @@ package generator.handlers;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 import com.google.common.collect.Iterators;
 
 import generator.utils.DesiredCapabilityUtils;
+import generator.utils.ExcelUtils;
 import io.appium.java_client.remote.MobileCapabilityType;
 
 /**
@@ -92,30 +93,15 @@ public class SettingHandler implements HandlerExecution<Map<String, Map<String, 
 
 				String key = mapper.getOrDefault(column, column);
 
-				if (row.getCell(1) == null)
+				Cell cell = row.getCell(1);
+				if (cell == null)
 					continue;
 
-				CellType cell = row.getCell(1).getCellTypeEnum();
+				Optional<Object> value = ExcelUtils.getCellValue(cell);
 
-				Object value = null;
-
-				// 判斷Excel儲存格欄位格式
-				switch (cell) {
-				case BOOLEAN:
-					value = row.getCell(1).getBooleanCellValue();
-					break;
-
-				case STRING:
-					String cellValue = row.getCell(1).getStringCellValue();
-					if (StringUtils.isNotBlank(cellValue))
-						value = cellValue;
-					break;
-				default:
-					break;
+				if (value.isPresent()) {
+					desiredCapabilities.put(key, value.get());
 				}
-
-				if (value != null)
-					desiredCapabilities.put(key, value);
 			}
 
 			if (implicitlyWaitProperty(row)) {
@@ -123,23 +109,12 @@ public class SettingHandler implements HandlerExecution<Map<String, Map<String, 
 				Cell valueCell = row.getCell(1);
 
 				if (valueCell != null) {
-					CellType cell = valueCell.getCellTypeEnum();
 
-					Integer waitSec = null;
-					switch (cell) {
-					case NUMERIC:
-						waitSec = ((Double) valueCell.getNumericCellValue()).intValue();
-						break;
+					Optional<Integer> waitSec = ExcelUtils.getCellValueToInteger(valueCell);
 
-					case STRING:
-						waitSec = Integer.valueOf(row.getCell(1).getStringCellValue());
-						break;
-					default:
-						break;
+					if (waitSec.isPresent()) {
+						driverProperties.put("implicitlyWait", waitSec.get());
 					}
-
-					if (waitSec != null)
-						driverProperties.put("implicitlyWait", waitSec);
 				}
 			}
 		}
