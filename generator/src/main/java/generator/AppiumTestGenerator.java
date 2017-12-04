@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,36 +55,38 @@ import models.Step;
 
 public class AppiumTestGenerator {
 
-	private static final String EXCEPTION_RULE = "exceptionRule";
+	private static final String ACCOUNT_PASSWORD = "password";
+	private static final String ACCOUNT_PID = "pid";
+	private static final String ACCOUNT_USERNAME = "userName";
+
+	private static final String DEFAULT_PACKAGE = "sauce_appium_junit";
+	private static final String DEFAULT_UTIL_PACKAGE = "module";
+
+	private static final String DRIVER_IMPLICITLY_WAIT_SEC = "implicitlyWaitSec";
+	private static final String DRIVER_NAME = "driver";
+	private static TypeName DRIVER_TYPE = ParameterizedTypeName.get(IOSDriver.class, MobileElement.class);
+
+	private static final String PHONE_HEIGHT = "height";
+	private static final String PHONE_WIDTH = "width";
+
+	private static final String TEST_RULE_EXCEPTION = "exceptionRule";
+	private static final String TEST_RULE_USER = "userRule";
+
 	private Map<String, AccountInfo> accountInfos;
+
 	private Map<String, MethodSpec> defaultMethodSpec = new HashMap<>();
-
-	private String defaultUtilPackage = "module";
-
 	private Map<String, Object> desiredCapabilities;
-
-	private final String driverName = "driver";
-
 	private Map<String, Object> driverProperties;
-
 	private List<Feature> features;
-
-	private String heightField = "height";
-	private String implicitlyWaitSecName = "implicitlyWaitSec";
-
 	private List<JavaFile> javaFiles = new ArrayList<>();
 
 	private String outputDir = "examples/test";
-	private String packageName = "sauce_appium_junit";
-	private String passwordField = "password";
-	private String pidField = "pid";
-	private String userNameField = "userName";
-	private String userRule = "userRule";
+
 	private Map<String, CommonMethod> utilMethodsMapper = new HashMap<>();
 
 	private List<CommonUtilClass> utils;
-	private String widthField = "width";
 
+	@SuppressWarnings("unchecked")
 	public AppiumTestGenerator(ExcelReader reader) {
 
 		Map<String, Object> data = reader.getData();
@@ -96,44 +99,19 @@ public class AppiumTestGenerator {
 
 		List<AccountInfo> accounts = (List<AccountInfo>) data.get(AccountMapper.TYPE);
 		accountInfos = new HashMap<>();
-		for (AccountInfo acc : accounts) {
-			accountInfos.put(acc.getType(), acc);
-		}
-
-		utils = (List<CommonUtilClass>) data.get(CommonStepMapper.TYPE);
-		utils.forEach(util -> {
-			util.getMethods().forEach(method -> {
-				utilMethodsMapper.put(method.getDesc(), method);
-			});
-		});
-	}
-
-	public void addDesiredCapabilities(Map<String, Object> desiredCapabilities) {
-		for (Map.Entry<String, Object> entry : desiredCapabilities.entrySet()) {
-			String key = entry.getKey();
-			Object value = entry.getValue();
-
-			if (key.equals(MobileCapabilityType.PLATFORM_VERSION)) {
-				String version = (String) value;
-				version = version.replaceAll("[^\\.0123456789]", "");
-				value = version;
+		if (accounts != null)
+			for (AccountInfo acc : accounts) {
+				accountInfos.put(acc.getType(), acc);
 			}
 
-			this.desiredCapabilities.put(entry.getKey(), value);
-		}
-	}
+		utils = (List<CommonUtilClass>) data.get(CommonStepMapper.TYPE);
 
-	public void addDriverProperties(Map<String, Object> driverProperties) {
-		for (Map.Entry<String, Object> entry : driverProperties.entrySet()) {
-			String key = entry.getKey();
-			Object value = entry.getValue();
-
-			this.driverProperties.put(key, value);
-		}
-	}
-
-	public void addFeatures(List<Feature> features) {
-		this.features.addAll(features);
+		if (utils != null)
+			utils.forEach(util -> {
+				util.getMethods().forEach(method -> {
+					utilMethodsMapper.put(method.getDesc(), method);
+				});
+			});
 	}
 
 	public void generate() throws IOException {
@@ -156,8 +134,7 @@ public class AppiumTestGenerator {
 
 		for (Step step : scenario.getSteps()) {
 
-			methodBuilder.addComment("$L $L $L $L ", step.getGherkinType(), step.getDesc(), step.getCommand().getType(),
-					step.getCommand().getParams());
+			addStepComment(methodBuilder, step);
 
 			String commandType = step.getCommand().getType();
 			String desc = step.getDesc();
@@ -175,44 +152,30 @@ public class AppiumTestGenerator {
 					String element = (String) params.get(0);
 
 					methodBuilder.addCode("$T<$T> expectedElements = $L.findElements($T.$L(\"$L\"));\n", List.class,
-							MobileElement.class, driverName, By.class, methodName, element);
+							MobileElement.class, DRIVER_NAME, By.class, methodName, element);
 
 					methodBuilder.addCode("assertTrue(expectedElements.size() >0);\n");
 
 				}
 
 			} else if ("ByName".equals(commandType) || "ByXPath".equals(commandType)) {
-				String methodName = StringUtils.lowerCase(commandType.substring(2));
-				if (params.isEmpty()) {
-					continue;
-				}
-				if (params.size() <= 1)
-					continue;
-
-				String action = (String) params.get(1);
-
-				if ("click".equals(action)) {
-					appendClickCode(methodBuilder, params, methodName);
-				} else if ("sendKeys".equals(action)) {
-					appendSendKeyCode(methodBuilder, params, methodName);
-				}
+				appendByNameOrByXPathCode(methodBuilder, commandType, params);
 			} else if (commandType.startsWith("TouchAction_")) {
 				appendTouchActionCode(methodBuilder, commandType);
 			} else if (commandType.startsWith("Waiting")) {
 				appendWaitingCode(methodBuilder, commandType, params);
 			} else if ("CheckAlert".equals(commandType)) {
 				appendCheckAlertCode(methodBuilder, commandType, params);
-			}
-
-			else if (utilMethodsMapper.containsKey(desc)) {
+			} else if (utilMethodsMapper.containsKey(desc)) {
 
 				CommonMethod clazz = utilMethodsMapper.get(desc);
 
 				ClassName utilClass = ClassName.get(
-						packageName + "." + defaultUtilPackage + "." + clazz.getPackageName(), clazz.getClassName());
+						DEFAULT_PACKAGE + "." + DEFAULT_UTIL_PACKAGE + "." + clazz.getPackageName(),
+						clazz.getClassName());
 
-				methodBuilder.addCode("$T.$L($L,$L,$L,$L,$L);\n", utilClass, clazz.getName(), driverName, userNameField,
-						passwordField, pidField, implicitlyWaitSecName);
+				methodBuilder.addCode("$T.$L($L,$L,$L,$L,$L);\n", utilClass, clazz.getName(), DRIVER_NAME,
+						ACCOUNT_USERNAME, ACCOUNT_PASSWORD, ACCOUNT_PID, DRIVER_IMPLICITLY_WAIT_SEC);
 
 				AnnotationSpec annotationSpec = AnnotationSpec.builder(NoResetSetting.class)
 						.addMember("noReset", "$L", clazz.isNoReset()).build();
@@ -245,19 +208,13 @@ public class AppiumTestGenerator {
 
 		methodBuilder.addCode(generateDesiredCapabilities("capabilities", desiredCapabilities));
 
-		methodBuilder.addCode(generateDriver(driverName, "capabilities", driverProperties));
+		methodBuilder.addCode(generateDriver(DRIVER_NAME, "capabilities", driverProperties));
 
 		methodBuilder.addCode(generateUserCode());
 
 		methodBuilder.addCode(generateSetExceptionRule());
 
 		return methodBuilder.build();
-	}
-
-	private CodeBlock generateSetExceptionRule() {
-		CodeBlock.Builder builder = CodeBlock.builder();
-		builder.add("$L.setDriver($L);\n", EXCEPTION_RULE, driverName);
-		return builder.build();
 	}
 
 	public String getKuaiKuai() {
@@ -305,43 +262,80 @@ public class AppiumTestGenerator {
 		});
 	}
 
+	private Builder addDefaultUtilMethodParameter(Builder methodBuilder) {
+		methodBuilder.addParameter(DRIVER_TYPE, DRIVER_NAME).addParameter(String.class, ACCOUNT_USERNAME)
+				.addParameter(String.class, ACCOUNT_PASSWORD).addParameter(String.class, ACCOUNT_PID)
+				.addParameter(TypeName.LONG, DRIVER_IMPLICITLY_WAIT_SEC);
+
+		return methodBuilder;
+	}
+
 	private void addFieldForTest(TypeSpec.Builder classBuilder) {
 
-		TypeName driverType = ParameterizedTypeName.get(IOSDriver.class, MobileElement.class);
-		FieldSpec driverNameSpec = FieldSpec.builder(driverType, driverName, Modifier.PRIVATE).build();
+		FieldSpec driverNameSpec = FieldSpec.builder(DRIVER_TYPE, DRIVER_NAME, Modifier.PRIVATE).build();
 		classBuilder.addField(driverNameSpec);
 
-		FieldSpec exceptionfieldSpec = FieldSpec.builder(ExceptionRule.class, EXCEPTION_RULE).addAnnotation(Rule.class)
-				.addModifiers(Modifier.PUBLIC).initializer("new $T()", ExceptionRule.class).build();
+		FieldSpec exceptionfieldSpec = FieldSpec.builder(ExceptionRule.class, TEST_RULE_EXCEPTION)
+				.addAnnotation(Rule.class).addModifiers(Modifier.PUBLIC).initializer("new $T()", ExceptionRule.class)
+				.build();
 		classBuilder.addField(exceptionfieldSpec);
 
 		FieldSpec fieldSpec = FieldSpec.builder(NoResetSettingRule.class, "rule").addAnnotation(Rule.class)
 				.addModifiers(Modifier.PUBLIC).initializer("new $T()", NoResetSettingRule.class).build();
 		classBuilder.addField(fieldSpec);
 
-		FieldSpec memberFieldSpec = FieldSpec.builder(UserLoginTestRule.class, userRule).addAnnotation(Rule.class)
+		FieldSpec memberFieldSpec = FieldSpec.builder(UserLoginTestRule.class, TEST_RULE_USER).addAnnotation(Rule.class)
 				.addModifiers(Modifier.PUBLIC).initializer("new $T()", UserLoginTestRule.class).build();
 		classBuilder.addField(memberFieldSpec);
 
-		classBuilder.addField(String.class, userNameField, Modifier.PRIVATE);
-		classBuilder.addField(String.class, pidField, Modifier.PRIVATE);
-		classBuilder.addField(String.class, passwordField, Modifier.PRIVATE);
+		classBuilder.addField(String.class, ACCOUNT_USERNAME, Modifier.PRIVATE);
+		classBuilder.addField(String.class, ACCOUNT_PID, Modifier.PRIVATE);
+		classBuilder.addField(String.class, ACCOUNT_PASSWORD, Modifier.PRIVATE);
 
-		classBuilder.addField(Integer.class, widthField, Modifier.PRIVATE);
-		classBuilder.addField(Integer.class, heightField, Modifier.PRIVATE);
+		classBuilder.addField(Integer.class, PHONE_WIDTH, Modifier.PRIVATE);
+		classBuilder.addField(Integer.class, PHONE_HEIGHT, Modifier.PRIVATE);
 
-		classBuilder.addField(TypeName.LONG, implicitlyWaitSecName, Modifier.PRIVATE);
+		classBuilder.addField(TypeName.LONG, DRIVER_IMPLICITLY_WAIT_SEC, Modifier.PRIVATE);
+	}
+
+	private void addStepComment(Builder methodBuilder, Step step) {
+
+		if (step.getGherkinType() == null) {
+			methodBuilder.addComment("$L $L $L", step.getDesc(), step.getCommand().getType(),
+					step.getCommand().getParams());
+		} else {
+			methodBuilder.addComment("$L $L $L $L", step.getGherkinType(), step.getDesc(), step.getCommand().getType(),
+					step.getCommand().getParams());
+		}
+	}
+
+	private void appendByNameOrByXPathCode(Builder methodBuilder, String commandType, List<Object> params) {
+		String methodName = StringUtils.lowerCase(commandType.substring(2));
+		if (params.isEmpty()) {
+			return;
+		}
+		if (params.size() <= 1)
+			return;
+
+		String action = (String) params.get(1);
+
+		if ("click".equals(action)) {
+			appendClickCode(methodBuilder, params, methodName);
+		} else if ("sendKeys".equals(action)) {
+			appendSendKeyCode(methodBuilder, params, methodName);
+		}
+
 	}
 
 	private void appendCheckAlertCode(Builder methodBuilder, String commandType, List<Object> params) {
 		String elementName = String.valueOf(params.get(0));
-		methodBuilder.addCode("$T.presenceClick($L,2L,$S,$L );\n", CommandUtils.class, driverName, elementName,
-				implicitlyWaitSecName);
+		methodBuilder.addCode("$T.presenceClick($L,2L,$S,$L );\n", CommandUtils.class, DRIVER_NAME, elementName,
+				DRIVER_IMPLICITLY_WAIT_SEC);
 	}
 
 	private void appendClickCode(Builder methodBuilder, List<Object> params, String methodName) {
 		String element = (String) params.get(0);
-		methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).click();\n", driverName, By.class, methodName, element);
+		methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).click();\n", DRIVER_NAME, By.class, methodName, element);
 	}
 
 	private void appendSendKeyCode(Builder methodBuilder, List<Object> params, String methodName) {
@@ -368,10 +362,10 @@ public class AppiumTestGenerator {
 		}
 
 		if (value.startsWith("${") && value.endsWith("}")) {
-			methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class, methodName,
+			methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", DRIVER_NAME, By.class, methodName,
 					element, value.substring(2, value.length() - 1));
 		} else {
-			methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", driverName, By.class, methodName,
+			methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", DRIVER_NAME, By.class, methodName,
 					element, "\"" + value + "\"");
 		}
 	}
@@ -386,7 +380,7 @@ public class AppiumTestGenerator {
 		for (int i = 0; i < times; i++) {
 			methodBuilder.addCode(
 					"(new $T($L)).press( ($L/2), $L -25).moveTo(0, (-1) * $L / 2 ).release().perform();\n",
-					TouchAction.class, driverName, widthField, heightField, heightField);
+					TouchAction.class, DRIVER_NAME, PHONE_WIDTH, PHONE_HEIGHT, PHONE_HEIGHT);
 		}
 	}
 
@@ -446,14 +440,20 @@ public class AppiumTestGenerator {
 		builder.add("$L= new $T<$T>(new $T(\"$L\"), $L);\n", driverName, IOSDriver.class, MobileElement.class,
 				URL.class, url, variable);
 
-		builder.add("$L= $L;\n", implicitlyWaitSecName, implicitlyWaitSec);
+		builder.add("$L= $L;\n", DRIVER_IMPLICITLY_WAIT_SEC, implicitlyWaitSec);
 
 		builder.add("$L.manage().timeouts().implicitlyWait($L ,$T.SECONDS);\n", driverName, implicitlyWaitSec,
 				TimeUnit.class);
 
-		builder.add("$L = $L.manage().window().getSize().getWidth();\n", widthField, driverName);
-		builder.add("$L = $L.manage().window().getSize().getHeight();\n", heightField, driverName);
+		builder.add("$L = $L.manage().window().getSize().getWidth();\n", PHONE_WIDTH, driverName);
+		builder.add("$L = $L.manage().window().getSize().getHeight();\n", PHONE_HEIGHT, driverName);
 
+		return builder.build();
+	}
+
+	private CodeBlock generateSetExceptionRule() {
+		CodeBlock.Builder builder = CodeBlock.builder();
+		builder.add("$L.setDriver($L);\n", TEST_RULE_EXCEPTION, DRIVER_NAME);
 		return builder.build();
 	}
 
@@ -489,7 +489,7 @@ public class AppiumTestGenerator {
 
 			TypeSpec typeSpec = classBuilder.build();
 
-			javaFiles.add(JavaFile.builder(packageName + "." + feature.getPackageName(), typeSpec)
+			javaFiles.add(JavaFile.builder(DEFAULT_PACKAGE + "." + feature.getPackageName(), typeSpec)
 					.addStaticImport(org.junit.Assert.class, "*").build());
 		}
 	}
@@ -497,10 +497,10 @@ public class AppiumTestGenerator {
 	private CodeBlock generateUserCode() {
 		CodeBlock.Builder builder = CodeBlock.builder();
 
-		builder.beginControlFlow("if($L.getHasUser())", userRule);
-		builder.add("$L=$L.getUserName();\n", userNameField, userRule);
-		builder.add("$L=$L.getPid();\n", pidField, userRule);
-		builder.add("$L=$L.getPassword();\n", passwordField, userRule);
+		builder.beginControlFlow("if($L.getHasUser())", TEST_RULE_USER);
+		builder.add("$L=$L.getUserName();\n", ACCOUNT_USERNAME, TEST_RULE_USER);
+		builder.add("$L=$L.getPid();\n", ACCOUNT_PID, TEST_RULE_USER);
+		builder.add("$L=$L.getPassword();\n", ACCOUNT_PASSWORD, TEST_RULE_USER);
 		builder.endControlFlow();
 
 		return builder.build();
@@ -513,37 +513,24 @@ public class AppiumTestGenerator {
 	 */
 	private MethodSpec generateUtilMethod(CommonMethod method) {
 
-		Builder methodBuilder = MethodSpec.methodBuilder(method.getName()).addModifiers(Modifier.PUBLIC)
-				.addModifiers(Modifier.STATIC).addParameter(IOSDriver.class, driverName)
-				.addParameter(String.class, userNameField).addParameter(String.class, passwordField)
-				.addParameter(String.class, pidField).addParameter(TypeName.LONG, implicitlyWaitSecName)
-				.returns(void.class).addJavadoc(method.getDesc() + "\n@param " + driverName
-						+ "\n@param userName\n@param password\n@param pid\n@return\n");
+		Builder methodBuilder = MethodSpec.methodBuilder(method.getName()).addModifiers(Modifier.PUBLIC,
+				Modifier.STATIC);
+
+		methodBuilder = addDefaultUtilMethodParameter(methodBuilder);
+
+		methodBuilder.returns(void.class).addJavadoc(MessageFormat.format(
+				"{0}\n\n@param {1}\n@param {2}\n@param {3}\n@param {4}\n@param {5}\n@return\n", method.getDesc(),
+				DRIVER_NAME, ACCOUNT_USERNAME, ACCOUNT_PASSWORD, ACCOUNT_PID, DRIVER_IMPLICITLY_WAIT_SEC));
 
 		for (Step step : method.getSteps()) {
-			methodBuilder.addComment("$L $L $L ", step.getDesc(), step.getCommand().getType(),
-					step.getCommand().getParams());
+
+			addStepComment(methodBuilder, step);
 
 			String commandType = step.getCommand().getType();
-
 			List<Object> params = step.getCommand().getParams();
 
 			if ("ByName".equals(commandType) || "ByXPath".equals(commandType)) {
-
-				String methodName = StringUtils.lowerCase(commandType.substring(2));
-				if (params.isEmpty()) {
-					continue;
-				}
-				if (params.size() <= 1)
-					continue;
-
-				String action = (String) params.get(1);
-
-				if ("click".equals(action)) {
-					appendClickCode(methodBuilder, params, methodName);
-				} else if ("sendKeys".equals(action)) {
-					appendSendKeyCode(methodBuilder, params, methodName);
-				}
+				appendByNameOrByXPathCode(methodBuilder, commandType, params);
 			} else if (commandType.startsWith("TouchAction_")) {
 				appendTouchActionCode(methodBuilder, commandType);
 			} else if (commandType.startsWith("Waiting")) {
@@ -570,9 +557,8 @@ public class AppiumTestGenerator {
 			TypeSpec typeSpec = classBuilder.addJavadoc(utilClass.getDesc() + "\n").build();
 
 			javaFiles.add(JavaFile
-					.builder(packageName + "." + defaultUtilPackage + "." + utilClass.getPackageName(), typeSpec)
+					.builder(DEFAULT_PACKAGE + "." + DEFAULT_UTIL_PACKAGE + "." + utilClass.getPackageName(), typeSpec)
 					.build());
 		}
-
 	}
 }
