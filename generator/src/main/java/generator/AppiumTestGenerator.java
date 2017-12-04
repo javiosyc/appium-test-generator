@@ -41,7 +41,7 @@ import generator.test.annotation.TestingAccount;
 import generator.test.rules.ExceptionRule;
 import generator.test.rules.NoResetSettingRule;
 import generator.test.rules.UserLoginTestRule;
-import generator.utils.CommandUtils;
+import generator.test.utils.CommandUtils;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.TouchAction;
 import io.appium.java_client.ios.IOSDriver;
