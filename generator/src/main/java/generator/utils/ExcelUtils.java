@@ -18,10 +18,12 @@ public class ExcelUtils {
 			value = cell.getStringCellValue();
 			break;
 		case NUMERIC:
-			value = cell.getNumericCellValue();
+			cell.setCellType(CellType.STRING);
+			value = cell.getStringCellValue();
 			break;
 		case BOOLEAN:
 			value = cell.getBooleanCellValue();
+			break;
 		default:
 			break;
 		}
