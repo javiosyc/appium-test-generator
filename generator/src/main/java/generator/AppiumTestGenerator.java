@@ -497,8 +497,8 @@ public class AppiumTestGenerator {
 
 			TypeSpec typeSpec = classBuilder.build();
 
-			javaFiles.add(JavaFile.builder(getTestClassPackage(), typeSpec).addStaticImport(org.junit.Assert.class, "*")
-					.build());
+			javaFiles.add(JavaFile.builder(getTestClassPackage(feature.getPackageName()), typeSpec)
+					.addStaticImport(org.junit.Assert.class, "*").build());
 		}
 	}
 
@@ -570,7 +570,7 @@ public class AppiumTestGenerator {
 		}
 	}
 
-	private String getTestClassPackage() {
-		return DEFAULT_PACKAGE + "." + DEVICE_NAME + ".ios" + DRIVER_PLATEFORM_VERSION;
+	private String getTestClassPackage(String packageName) {
+		return DEFAULT_PACKAGE + "." + DEVICE_NAME + ".ios" + DRIVER_PLATEFORM_VERSION + "." + packageName;
 	}
 }
