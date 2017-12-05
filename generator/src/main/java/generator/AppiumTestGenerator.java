@@ -59,13 +59,15 @@ public class AppiumTestGenerator {
 	private static final String ACCOUNT_PID = "pid";
 	private static final String ACCOUNT_USERNAME = "userName";
 
-	private static final String DEFAULT_PACKAGE = "sauce_appium_junit";
+	private static final String DEFAULT_PACKAGE = "com.esun.automation";
 	private static final String DEFAULT_UTIL_PACKAGE = "module";
 
+	private static String DEVICE_NAME;
 	private static final String DRIVER_IMPLICITLY_WAIT_SEC = "implicitlyWaitSec";
 	private static final String DRIVER_NAME = "driver";
-	private static TypeName DRIVER_TYPE = ParameterizedTypeName.get(IOSDriver.class, MobileElement.class);
 
+	private static String DRIVER_PLATEFORM_VERSION;
+	private static TypeName DRIVER_TYPE = ParameterizedTypeName.get(IOSDriver.class, MobileElement.class);
 	private static final String PHONE_HEIGHT = "height";
 	private static final String PHONE_WIDTH = "width";
 
@@ -421,8 +423,14 @@ public class AppiumTestGenerator {
 			} else if (property.equals(MobileCapabilityType.PLATFORM_VERSION)) {
 				String version = (String) entry.getValue();
 				version = version.replaceAll("[^\\.0123456789]", "");
+				DRIVER_PLATEFORM_VERSION = StringUtils.replaceAll(version, "\\.", "_");
 				builder.add("$L.setCapability(\"$L\",\"$L\");\n", variable, entry.getKey(), version);
 			} else {
+
+				if (property.equals(MobileCapabilityType.DEVICE_NAME)) {
+					DEVICE_NAME = StringUtils.removeAll(StringUtils.lowerCase(String.valueOf(entry.getValue())), " ");
+				}
+
 				builder.add("$L.setCapability(\"$L\",\"$L\");\n", variable, entry.getKey(), entry.getValue());
 			}
 		}
@@ -489,8 +497,8 @@ public class AppiumTestGenerator {
 
 			TypeSpec typeSpec = classBuilder.build();
 
-			javaFiles.add(JavaFile.builder(DEFAULT_PACKAGE + "." + feature.getPackageName(), typeSpec)
-					.addStaticImport(org.junit.Assert.class, "*").build());
+			javaFiles.add(JavaFile.builder(getTestClassPackage(), typeSpec).addStaticImport(org.junit.Assert.class, "*")
+					.build());
 		}
 	}
 
@@ -560,5 +568,9 @@ public class AppiumTestGenerator {
 					.builder(DEFAULT_PACKAGE + "." + DEFAULT_UTIL_PACKAGE + "." + utilClass.getPackageName(), typeSpec)
 					.build());
 		}
+	}
+
+	private String getTestClassPackage() {
+		return DEFAULT_PACKAGE + "." + DEVICE_NAME + ".ios" + DRIVER_PLATEFORM_VERSION;
 	}
 }
