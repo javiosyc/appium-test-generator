@@ -6,7 +6,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -348,16 +347,8 @@ public class AppiumTestGenerator {
 		if (params.isEmpty()) {
 			return;
 		}
-		if (params.size() <= 2)
-			return;
 
-		String byMethod = StringUtils.lowerCase(((String) params.get(0)).substring(2));
-
-		List<Object> byParams = Arrays.asList(params.get(1));
-
-		appendClickCode(methodBuilder, byParams, byMethod);
-
-		String value = (String) params.get(2);
+		String value = (String) params.get(0);
 
 		methodBuilder.addCode("$L.findElement(By.xpath(\"//XCUIElementTypePickerWheel\")).setValue($S);\n", DRIVER_NAME,
 				value);
