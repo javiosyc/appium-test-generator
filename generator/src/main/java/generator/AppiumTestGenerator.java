@@ -6,6 +6,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,6 +169,8 @@ public class AppiumTestGenerator {
 				appendWaitingCode(methodBuilder, commandType, params);
 			} else if ("CheckAlert".equals(commandType)) {
 				appendCheckAlertCode(methodBuilder, commandType, params);
+			} else if ("Picker".equals(commandType)) {
+				appendPickerCode(methodBuilder, commandType, params);
 			} else if (utilMethodsMapper.containsKey(desc)) {
 
 				CommonMethod clazz = utilMethodsMapper.get(desc);
@@ -338,6 +341,28 @@ public class AppiumTestGenerator {
 	private void appendClickCode(Builder methodBuilder, List<Object> params, String methodName) {
 		String element = (String) params.get(0);
 		methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).click();\n", DRIVER_NAME, By.class, methodName, element);
+	}
+
+	private void appendPickerCode(Builder methodBuilder, String commandType, List<Object> params) {
+
+		if (params.isEmpty()) {
+			return;
+		}
+		if (params.size() <= 2)
+			return;
+
+		String byMethod = StringUtils.lowerCase(((String) params.get(0)).substring(2));
+
+		List<Object> byParams = Arrays.asList(params.get(1));
+
+		appendClickCode(methodBuilder, byParams, byMethod);
+
+		String value = (String) params.get(2);
+
+		methodBuilder.addCode("$L.findElement(By.xpath(\"//XCUIElementTypePickerWheel\")).setValue($S);\n", DRIVER_NAME,
+				value);
+
+		methodBuilder.addCode("$L.findElement(By.name(\"完成\")).click();\n", DRIVER_NAME);
 	}
 
 	private void appendSendKeyCode(Builder methodBuilder, List<Object> params, String methodName) {
@@ -545,7 +570,10 @@ public class AppiumTestGenerator {
 				appendWaitingCode(methodBuilder, commandType, params);
 			} else if ("CheckAlert".equals(commandType)) {
 				appendCheckAlertCode(methodBuilder, commandType, params);
+			} else if ("Picker".equals(commandType)) {
+				appendPickerCode(methodBuilder, commandType, params);
 			}
+
 		}
 
 		return methodBuilder.build();
