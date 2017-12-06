@@ -327,6 +327,8 @@ public class AppiumTestGenerator {
 			appendClickCode(methodBuilder, params, methodName);
 		} else if ("sendKeys".equals(action)) {
 			appendSendKeyCode(methodBuilder, params, methodName);
+		} else if ("clear".equals(action)) {
+			appendClearCode(methodBuilder, params, methodName);
 		}
 
 	}
@@ -335,6 +337,11 @@ public class AppiumTestGenerator {
 		String elementName = String.valueOf(params.get(0));
 		methodBuilder.addCode("$T.presenceClick($L,2L,$S,$L );\n", CommandUtils.class, DRIVER_NAME, elementName,
 				DRIVER_IMPLICITLY_WAIT_SEC);
+	}
+
+	private void appendClearCode(Builder methodBuilder, List<Object> params, String methodName) {
+		String element = (String) params.get(0);
+		methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).clear();\n", DRIVER_NAME, By.class, methodName, element);
 	}
 
 	private void appendClickCode(Builder methodBuilder, List<Object> params, String methodName) {
