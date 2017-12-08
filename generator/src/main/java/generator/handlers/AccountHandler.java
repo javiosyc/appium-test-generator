@@ -29,6 +29,11 @@ public class AccountHandler implements HandlerExecution<List<AccountInfo>> {
 
 	private String typeName;
 
+	/**
+	 * 
+	 * @param sheet
+	 * @param typeName
+	 */
 	public AccountHandler(XSSFSheet sheet, String typeName) {
 		this.sheet = sheet;
 		this.typeName = typeName;

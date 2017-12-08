@@ -11,7 +11,7 @@ import generator.ExcelReader;
 
 public class AppiumTestGeneratorTest {
 
-	private String path = "data/exceltemplate.xlsx";
+	private String path = "data/ScriptGenerator.xlsx";
 
 	@Test
 	public void test() throws FileNotFoundException, IOException {
