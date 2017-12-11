@@ -72,7 +72,8 @@ public class AppiumTestGenerator {
 	private static final String PHONE_WIDTH = "width";
 
 	private static final String TEST_RULE_EXCEPTION = "exceptionRule";
-	private static final String TEST_RULE_USER = "userRule";
+	private static final String TEST_RULE_NO_RESET = "noResetSettingRule";
+	private static final String TEST_RULE_USER = "userLoginTestRule";
 
 	private Map<String, AccountInfo> accountInfos;
 
@@ -221,6 +222,11 @@ public class AppiumTestGenerator {
 		return methodBuilder.build();
 	}
 
+	/**
+	 * generate KuaiKuai Comment
+	 * 
+	 * @return
+	 */
 	public String getKuaiKuai() {
 
 		String msg = "<pre>\n"
@@ -284,7 +290,7 @@ public class AppiumTestGenerator {
 				.build();
 		classBuilder.addField(exceptionfieldSpec);
 
-		FieldSpec fieldSpec = FieldSpec.builder(NoResetSettingRule.class, "rule").addAnnotation(Rule.class)
+		FieldSpec fieldSpec = FieldSpec.builder(NoResetSettingRule.class, TEST_RULE_NO_RESET).addAnnotation(Rule.class)
 				.addModifiers(Modifier.PUBLIC).initializer("new $T()", NoResetSettingRule.class).build();
 		classBuilder.addField(fieldSpec);
 
@@ -437,9 +443,10 @@ public class AppiumTestGenerator {
 
 			if ("noReset".equals(property)) {
 
-				builder.beginControlFlow("if ($L.isNoReset()!=null)", "rule");
+				builder.beginControlFlow("if ($L.isNoReset()!=null)", TEST_RULE_NO_RESET);
 
-				builder.add("$L.setCapability(\"$L\", $L.isNoReset());\n", variable, entry.getKey(), "rule");
+				builder.add("$L.setCapability(\"$L\", $L.isNoReset());\n", variable, entry.getKey(),
+						TEST_RULE_NO_RESET);
 
 				builder.endControlFlow();
 

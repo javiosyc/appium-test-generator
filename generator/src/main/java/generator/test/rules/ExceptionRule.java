@@ -18,6 +18,12 @@ import org.openqa.selenium.TakesScreenshot;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.ios.IOSDriver;
 
+/**
+ * 截圖例外處理
+ * 
+ * @author Cyndi
+ *
+ */
 public class ExceptionRule implements TestRule {
 
 	class BusinessExceptionStatement extends Statement {
@@ -41,20 +47,28 @@ public class ExceptionRule implements TestRule {
 				if (driver != null) {
 					try {
 						Calendar now = Calendar.getInstance();
-
+						// 拍照語法
 						File srcFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
 
+						// com.esun.automation.iphone8.ios11_2.demoCommonUtils.InstructionManualTest
+						// 取最後一個符號之前＝>com.esun.automation.iphone8.ios11_2.demoCommonUtils
 						String packageName = StringUtils.substringBeforeLast(description.getClassName(), ".");
 
+						// com.esun.automation.iphone8.ios11_2.demoCommonUtils
+						// 取最後一個符號之後=>demoCommonUtils
 						packageName = StringUtils.substringAfterLast(packageName, ".");
 
+						// com.esun.automation.iphone8.ios11_2.demoCommonUtils.InstructionManualTest
+						// 取最後一個符號之 後＝>InstructionManualTest
 						String className = StringUtils.substringAfterLast(description.getClassName(), ".");
 
+						// create folder
 						Path path = Paths.get("img/" + packageName);
 
 						if (!Files.exists(path)) {
 							Files.createDirectories(path);
 						}
+
 						String methodName = description.getMethodName();
 
 						String fileName = MessageFormat.format("{0}-{1}-{2}:{3}.png", className, methodName,
