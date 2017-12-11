@@ -443,6 +443,10 @@ public class AppiumTestGenerator {
 
 				builder.endControlFlow();
 
+				builder.beginControlFlow("else");
+				builder.add("$L.setCapability(\"$L\", $L);\n", variable, entry.getKey(), entry.getValue());
+				builder.endControlFlow();
+
 			} else if (property.equals(MobileCapabilityType.PLATFORM_VERSION)) {
 				String version = (String) entry.getValue();
 				version = version.replaceAll("[^\\.0123456789]", "");
@@ -579,21 +583,24 @@ public class AppiumTestGenerator {
 
 	private void generateUtilsClass() {
 
-		for (CommonUtilClass utilClass : utils) {
+		if (utils != null)
 
-			String className = utilClass.getName();
-			TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className).addModifiers(Modifier.PUBLIC);
+			for (CommonUtilClass utilClass : utils) {
 
-			for (CommonMethod method : utilClass.getMethods()) {
-				classBuilder.addMethod(generateUtilMethod(method));
+				String className = utilClass.getName();
+				TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className).addModifiers(Modifier.PUBLIC);
+
+				for (CommonMethod method : utilClass.getMethods()) {
+					classBuilder.addMethod(generateUtilMethod(method));
+				}
+
+				TypeSpec typeSpec = classBuilder.addJavadoc(utilClass.getDesc() + "\n").build();
+
+				javaFiles.add(JavaFile
+						.builder(DEFAULT_PACKAGE + "." + DEFAULT_UTIL_PACKAGE + "." + utilClass.getPackageName(),
+								typeSpec)
+						.build());
 			}
-
-			TypeSpec typeSpec = classBuilder.addJavadoc(utilClass.getDesc() + "\n").build();
-
-			javaFiles.add(JavaFile
-					.builder(DEFAULT_PACKAGE + "." + DEFAULT_UTIL_PACKAGE + "." + utilClass.getPackageName(), typeSpec)
-					.build());
-		}
 	}
 
 	private String getTestClassPackage(String packageName) {
