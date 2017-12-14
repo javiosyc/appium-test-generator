@@ -9,14 +9,34 @@ import java.util.List;
  *
  */
 public class CommonMethod {
+
+	/**
+	 * ClassName
+	 */
 	private String className;
+	/**
+	 * ClassComment
+	 */
 	private String desc;
 
+	/**
+	 * MethodName
+	 */
 	private String name;
+
+	/**
+	 * noReset Type
+	 */
 	private boolean noReset = false;
 
+	/**
+	 * package name
+	 */
 	private String packageName;
 
+	/**
+	 * Step
+	 */
 	private List<Step> steps;
 
 	public String getClassName() {

@@ -8,10 +8,19 @@ package models;
  */
 public class Step {
 
+	/**
+	 * Command(example:ByName,CheckAlert,ByXpath...etc)
+	 */
 	private Command command;
 
+	/**
+	 * Step步驟描述
+	 */
 	private String desc;
 
+	/**
+	 * GWT(example:Given,When,Then)
+	 */
 	private String gherkinType;
 
 	public Command getCommand() {

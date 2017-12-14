@@ -53,6 +53,12 @@ import models.Feature;
 import models.Scenario;
 import models.Step;
 
+/**
+ * Script Generator
+ * 
+ * @author Cyndi
+ *
+ */
 public class AppiumTestGenerator {
 
 	private static final String ACCOUNT_PASSWORD = "password";
@@ -93,22 +99,24 @@ public class AppiumTestGenerator {
 	public AppiumTestGenerator(ExcelReader reader) {
 
 		Map<String, Object> data = reader.getData();
-
+		// 讀取excel之features(scripts)
 		features = (List<Feature>) data.get(ScriptMapper.TYPE);
-
+		// 讀取excel之裝置設定(Capabilities)
 		desiredCapabilities = ((Map<String, Map<String, Object>>) data.get(SettingMapper.TYPE))
 				.get("desiredCapabilities");
+		// 讀取excel之裝置設定(driver),處理等待時間用
 		driverProperties = ((Map<String, Map<String, Object>>) data.get(SettingMapper.TYPE)).get("driverProperties");
-
+		// 讀取excel之測試資料(data)
 		List<AccountInfo> accounts = (List<AccountInfo>) data.get(AccountMapper.TYPE);
 		accountInfos = new HashMap<>();
 		if (accounts != null)
 			for (AccountInfo acc : accounts) {
 				accountInfos.put(acc.getType(), acc);
 			}
-
+		// 讀取excel之共用步驟(CommonStep)
 		utils = (List<CommonUtilClass>) data.get(CommonStepMapper.TYPE);
 
+		// 把中文MethodComment作為Key存起來，與Util-Method mapping)
 		if (utils != null)
 			utils.forEach(util -> {
 				util.getMethods().forEach(method -> {
@@ -117,6 +125,11 @@ public class AppiumTestGenerator {
 			});
 	}
 
+	/**
+	 * 依序產生Utils Class & Test Class
+	 * 
+	 * @throws IOException
+	 */
 	public void generate() throws IOException {
 
 		generateUtilsClass();
@@ -124,11 +137,23 @@ public class AppiumTestGenerator {
 		generateTestClass();
 	}
 
+	/**
+	 * 
+	 * @param test
+	 *            Method Name
+	 * @return
+	 */
 	public Builder generateDefaultTestMethod(String testMethodName) {
 		return MethodSpec.methodBuilder(testMethodName).addModifiers(Modifier.PUBLIC).returns(void.class)
 				.addAnnotation(Test.class);
 	}
 
+	/**
+	 * generate script method
+	 * 
+	 * @param scenario
+	 * @return
+	 */
 	public MethodSpec generateScenariosMethod(Scenario scenario) {
 
 		Builder methodBuilder = generateDefaultTestMethod(scenario.getName());
@@ -142,6 +167,8 @@ public class AppiumTestGenerator {
 			String commandType = step.getCommand().getType();
 			String desc = step.getDesc();
 			List<Object> params = step.getCommand().getParams();
+
+			// 若為Then,add assert code
 			if ("Then".equals(step.getGherkinType())) {
 
 				if ("ByName".equals(commandType) || "ByXPath".equals(commandType)) {
@@ -201,11 +228,19 @@ public class AppiumTestGenerator {
 		return methodBuilder.build();
 	}
 
+	/**
+	 * generate SetupMethod & TearDownMethod
+	 */
 	public void generateSetUpAndTearDownMethod() {
 		defaultMethodSpec.put("setUp", generateSetUpMethod());
 		defaultMethodSpec.put("tearDown", generateTearDownMethod());
 	}
 
+	/**
+	 * define MethodSpec SetupMethod(@Before)
+	 * 
+	 * @return
+	 */
 	public MethodSpec generateSetUpMethod() {
 
 		Builder methodBuilder = MethodSpec.methodBuilder("setUp").addModifiers(Modifier.PUBLIC).returns(void.class)
@@ -262,6 +297,9 @@ public class AppiumTestGenerator {
 		this.outputDir = outputDir;
 	}
 
+	/**
+	 * 將javaFile export to file
+	 */
 	public void writeTo() {
 		javaFiles.forEach((javaFile) -> {
 			try {
@@ -272,6 +310,12 @@ public class AppiumTestGenerator {
 		});
 	}
 
+	/**
+	 * define default method Parameter
+	 * 
+	 * @param methodBuilder
+	 * @return
+	 */
 	private Builder addDefaultUtilMethodParameter(Builder methodBuilder) {
 		methodBuilder.addParameter(DRIVER_TYPE, DRIVER_NAME).addParameter(String.class, ACCOUNT_USERNAME)
 				.addParameter(String.class, ACCOUNT_PASSWORD).addParameter(String.class, ACCOUNT_PID)
@@ -280,6 +324,11 @@ public class AppiumTestGenerator {
 		return methodBuilder;
 	}
 
+	/**
+	 * generate Field
+	 * 
+	 * @param classBuilder
+	 */
 	private void addFieldForTest(TypeSpec.Builder classBuilder) {
 
 		FieldSpec driverNameSpec = FieldSpec.builder(DRIVER_TYPE, DRIVER_NAME, Modifier.PRIVATE).build();
@@ -308,6 +357,12 @@ public class AppiumTestGenerator {
 		classBuilder.addField(TypeName.LONG, DRIVER_IMPLICITLY_WAIT_SEC, Modifier.PRIVATE);
 	}
 
+	/**
+	 * add Step Comment
+	 * 
+	 * @param methodBuilder
+	 * @param step
+	 */
 	private void addStepComment(Builder methodBuilder, Step step) {
 
 		if (step.getGherkinType() == null) {
@@ -319,6 +374,13 @@ public class AppiumTestGenerator {
 		}
 	}
 
+	/**
+	 * 加上ByName/ByXPath code，並處理click/sendkeys/clear
+	 * 
+	 * @param methodBuilder
+	 * @param commandType
+	 * @param params
+	 */
 	private void appendByNameOrByXPathCode(Builder methodBuilder, String commandType, List<Object> params) {
 		String methodName = StringUtils.lowerCase(commandType.substring(2));
 		if (params.isEmpty()) {
@@ -339,22 +401,50 @@ public class AppiumTestGenerator {
 
 	}
 
+	/**
+	 * 加上CheckAlert Code
+	 * 
+	 * @param methodBuilder
+	 * @param commandType
+	 * @param params
+	 */
 	private void appendCheckAlertCode(Builder methodBuilder, String commandType, List<Object> params) {
 		String elementName = String.valueOf(params.get(0));
 		methodBuilder.addCode("$T.presenceClick($L,2L,$S,$L );\n", CommandUtils.class, DRIVER_NAME, elementName,
 				DRIVER_IMPLICITLY_WAIT_SEC);
 	}
 
+	/**
+	 * 加上Clear Code
+	 * 
+	 * @param methodBuilder
+	 * @param commandType
+	 * @param params
+	 */
 	private void appendClearCode(Builder methodBuilder, List<Object> params, String methodName) {
 		String element = (String) params.get(0);
 		methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).clear();\n", DRIVER_NAME, By.class, methodName, element);
 	}
 
+	/**
+	 * 加上Click Code
+	 * 
+	 * @param methodBuilder
+	 * @param params
+	 * @param methodName
+	 */
 	private void appendClickCode(Builder methodBuilder, List<Object> params, String methodName) {
 		String element = (String) params.get(0);
 		methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).click();\n", DRIVER_NAME, By.class, methodName, element);
 	}
 
+	/**
+	 * 加上Picker Code
+	 * 
+	 * @param methodBuilder
+	 * @param commandType
+	 * @param params
+	 */
 	private void appendPickerCode(Builder methodBuilder, String commandType, List<Object> params) {
 
 		if (params.isEmpty()) {
@@ -369,11 +459,19 @@ public class AppiumTestGenerator {
 		methodBuilder.addCode("$L.findElement(By.name(\"完成\")).click();\n", DRIVER_NAME);
 	}
 
+	/**
+	 * SendKey Method
+	 * 
+	 * @param methodBuilder
+	 * @param params
+	 * @param methodName
+	 */
 	private void appendSendKeyCode(Builder methodBuilder, List<Object> params, String methodName) {
 		String element = String.valueOf(params.get(0));
 
 		String value = String.valueOf(params.get(2));
 
+		// Script時，處理AccountInfo用
 		if (value.startsWith("#{") && value.endsWith("}")) {
 
 			String[] tag = value.substring(2, value.length() - 1).split("\\.");
@@ -392,6 +490,7 @@ public class AppiumTestGenerator {
 			}
 		}
 
+		// commonStep時，處理AccountInfo用
 		if (value.startsWith("${") && value.endsWith("}")) {
 			methodBuilder.addCode("$L.findElement($T.$L(\"$L\")).sendKeys($L);\n", DRIVER_NAME, By.class, methodName,
 					element, value.substring(2, value.length() - 1));
@@ -401,6 +500,12 @@ public class AppiumTestGenerator {
 		}
 	}
 
+	/**
+	 * 加上滑動TouchAction code
+	 * 
+	 * @param methodBuilder
+	 * @param commandType
+	 */
 	private void appendTouchActionCode(Builder methodBuilder, String commandType) {
 		String distance = commandType.replaceAll("TouchAction_", "");
 
@@ -415,6 +520,13 @@ public class AppiumTestGenerator {
 		}
 	}
 
+	/**
+	 * 加上等待時間Waiting Code
+	 * 
+	 * @param methodBuilder
+	 * @param commandType
+	 * @param params
+	 */
 	private void appendWaitingCode(Builder methodBuilder, String commandType, List<Object> params) {
 		String secString = StringUtils.trim(commandType.replaceAll("Waiting", ""));
 		int seconds;
@@ -422,15 +534,25 @@ public class AppiumTestGenerator {
 			if (params.size() == 0) {
 				return;
 			} else {
+				// 下拉式選單自訂Waiting time
 				seconds = Double.valueOf(String.valueOf(params.get(0))).intValue();
 			}
 		} else {
+			// 下拉式選單預設Waiting time，去底線/去S/去空白
 			seconds = Integer.parseInt(StringUtils.trim(StringUtils.strip(StringUtils.strip(secString, "_"), "s")));
 		}
+		// generate
 		methodBuilder.addCode("try { \n	$T.sleep($L* 1000);\n}catch($T e) { e.printStackTrace();\n}\n", Thread.class,
 				seconds, InterruptedException.class);
 	}
 
+	/**
+	 * generate Capabilities
+	 * 
+	 * @param variable
+	 * @param preoperties
+	 * @return
+	 */
 	private CodeBlock generateDesiredCapabilities(String variable, Map<String, Object> preoperties) {
 
 		CodeBlock.Builder builder = CodeBlock.builder();
@@ -441,6 +563,7 @@ public class AppiumTestGenerator {
 
 			String property = entry.getKey();
 
+			// 判斷是否有NoResetSetting annotation，若有會使用annotation之值；沒有則使用使用settings的設定值
 			if ("noReset".equals(property)) {
 
 				builder.beginControlFlow("if ($L.isNoReset()!=null)", TEST_RULE_NO_RESET);
@@ -453,19 +576,21 @@ public class AppiumTestGenerator {
 				builder.beginControlFlow("else");
 				builder.add("$L.setCapability(\"$L\", $L);\n", variable, entry.getKey(), entry.getValue());
 				builder.endControlFlow();
-
-			} else if (property.equals(MobileCapabilityType.PLATFORM_VERSION)) {
+			}
+			// 為generate PackageName，判斷property，將PLATFORM_VERSION去掉“.”，以“_”取代
+			else if (property.equals(MobileCapabilityType.PLATFORM_VERSION)) {
 				String version = (String) entry.getValue();
 				version = version.replaceAll("[^\\.0123456789]", "");
-				DRIVER_PLATEFORM_VERSION = StringUtils.replaceAll(version, "\\.", "_");
 				builder.add("$L.setCapability(\"$L\",\"$L\");\n", variable, entry.getKey(), version);
-			} else {
 
+				DRIVER_PLATEFORM_VERSION = StringUtils.replaceAll(version, "\\.", "_");
+			} else {
+				builder.add("$L.setCapability(\"$L\",\"$L\");\n", variable, entry.getKey(), entry.getValue());
+
+				// 為generate PackageName，判斷property，將DEVICE_NAME去掉空白，轉為小寫
 				if (property.equals(MobileCapabilityType.DEVICE_NAME)) {
 					DEVICE_NAME = StringUtils.removeAll(StringUtils.lowerCase(String.valueOf(entry.getValue())), " ");
 				}
-
-				builder.add("$L.setCapability(\"$L\",\"$L\");\n", variable, entry.getKey(), entry.getValue());
 			}
 		}
 
@@ -486,19 +611,30 @@ public class AppiumTestGenerator {
 
 		builder.add("$L.manage().timeouts().implicitlyWait($L ,$T.SECONDS);\n", driverName, implicitlyWaitSec,
 				TimeUnit.class);
-
+		// 擷取螢幕寬度
 		builder.add("$L = $L.manage().window().getSize().getWidth();\n", PHONE_WIDTH, driverName);
+		// 擷取螢幕高度
 		builder.add("$L = $L.manage().window().getSize().getHeight();\n", PHONE_HEIGHT, driverName);
 
 		return builder.build();
 	}
 
+	/**
+	 * 將driver設定至ExceptionRule
+	 * 
+	 * @return
+	 */
 	private CodeBlock generateSetExceptionRule() {
 		CodeBlock.Builder builder = CodeBlock.builder();
 		builder.add("$L.setDriver($L);\n", TEST_RULE_EXCEPTION, DRIVER_NAME);
 		return builder.build();
 	}
 
+	/**
+	 * generate Tear Down Method(@after)
+	 * 
+	 * @return
+	 */
 	private MethodSpec generateTearDownMethod() {
 		Builder methodBuilder = MethodSpec.methodBuilder("tearDown").addModifiers(Modifier.PUBLIC).returns(void.class)
 				.addAnnotation(After.class);
@@ -506,10 +642,14 @@ public class AppiumTestGenerator {
 		return methodBuilder.build();
 	}
 
+	/*
+	 * generate Test Class
+	 */
 	private void generateTestClass() {
 
 		generateSetUpAndTearDownMethod();
 
+		// 產生script javaFile
 		for (Feature feature : features) {
 
 			String className = StringUtils.endsWith(feature.getName(), "Test") ? feature.getName()
@@ -536,6 +676,11 @@ public class AppiumTestGenerator {
 		}
 	}
 
+	/**
+	 * 產生testing data code
+	 * 
+	 * @return
+	 */
 	private CodeBlock generateUserCode() {
 		CodeBlock.Builder builder = CodeBlock.builder();
 
@@ -549,6 +694,7 @@ public class AppiumTestGenerator {
 	}
 
 	/**
+	 * Generate 共用步驟(CommonStep) method
 	 * 
 	 * @param method
 	 * @return
@@ -563,7 +709,7 @@ public class AppiumTestGenerator {
 		methodBuilder.returns(void.class).addJavadoc(MessageFormat.format(
 				"{0}\n\n@param {1}\n@param {2}\n@param {3}\n@param {4}\n@param {5}\n@return\n", method.getDesc(),
 				DRIVER_NAME, ACCOUNT_USERNAME, ACCOUNT_PASSWORD, ACCOUNT_PID, DRIVER_IMPLICITLY_WAIT_SEC));
-
+		// 將每個Step轉成對應的Code
 		for (Step step : method.getSteps()) {
 
 			addStepComment(methodBuilder, step);
@@ -588,10 +734,14 @@ public class AppiumTestGenerator {
 		return methodBuilder.build();
 	}
 
+	/**
+	 * generate Utils Class
+	 */
 	private void generateUtilsClass() {
 
 		if (utils != null)
 
+			// 產生Util javaFile
 			for (CommonUtilClass utilClass : utils) {
 
 				String className = utilClass.getName();
@@ -610,6 +760,12 @@ public class AppiumTestGenerator {
 			}
 	}
 
+	/**
+	 * define Class PackageName
+	 * 
+	 * @param packageName
+	 * @return
+	 */
 	private String getTestClassPackage(String packageName) {
 		return DEFAULT_PACKAGE + "." + DEVICE_NAME + ".ios" + DRIVER_PLATEFORM_VERSION + "." + packageName;
 	}
