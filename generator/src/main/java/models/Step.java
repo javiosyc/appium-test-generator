@@ -1,7 +1,7 @@
 package models;
 
 /**
- * 步驟
+ * 測試步驟
  * 
  * @author Cyndi
  *

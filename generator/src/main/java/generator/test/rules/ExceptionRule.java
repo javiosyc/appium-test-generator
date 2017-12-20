@@ -4,8 +4,10 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DateFormat;
 import java.text.MessageFormat;
-import java.util.Calendar;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -46,7 +48,6 @@ public class ExceptionRule implements TestRule {
 
 				if (driver != null) {
 					try {
-						Calendar now = Calendar.getInstance();
 						// 拍照語法
 						File srcFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
 
@@ -63,7 +64,7 @@ public class ExceptionRule implements TestRule {
 						String className = StringUtils.substringAfterLast(description.getClassName(), ".");
 
 						// create folder
-						Path path = Paths.get("img/" + packageName);
+						Path path = Paths.get("img" + File.separator + packageName);
 
 						if (!Files.exists(path)) {
 							Files.createDirectories(path);
@@ -71,10 +72,13 @@ public class ExceptionRule implements TestRule {
 
 						String methodName = description.getMethodName();
 
-						String fileName = MessageFormat.format("{0}-{1}-{2}:{3}.png", className, methodName,
-								now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE));
+						DateFormat df = new SimpleDateFormat("MMddHHmm");
+						Date now = new Date();
+						String dateString = df.format(now);
 
-						FileUtils.copyFile(srcFile, new File(path + "/" + fileName));
+						String fileName = MessageFormat.format("{0}-{1}-{2}.png", className, methodName, dateString);
+
+						FileUtils.copyFile(srcFile, new File(path + File.separator + fileName));
 
 					} catch (Exception ex) {
 						System.out.println(ex);
